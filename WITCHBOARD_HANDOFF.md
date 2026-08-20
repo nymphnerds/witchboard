@@ -211,6 +211,10 @@ Each button is `Toggle 4P`, CC80, with values:
 | 85 | 2 | Pico MMF |
 | 127 | 3 | Percall 4 |
 
+On my Michigan Synth Works XVI-M, those four button states are shown as
+off/red/green/orange. Those colours belong to my controller setup, not to
+Witchboard itself. Witchboard only exposes normal NT enum values.
+
 Important preset detail: the native NT MIDI mappings for the CC80 buttons use `Min = 0` and `Max = 4`. This is intentional. It makes `0 / 42 / 85 / 127` land in four clean buckets, then Witchboard clamps to valid insert states `0..3`.
 
 ## Native MIDI Mapping Rule

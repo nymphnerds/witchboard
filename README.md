@@ -81,19 +81,23 @@ edited the normal NT way.
 The included hardware preset is set up for 4-state MIDI buttons that send these
 values on a single CC:
 
-| Button state | MIDI value | Witchboard state |
-|---|---:|---|
-| Off | 0 | Dry |
-| Red | 42 | Route A |
-| Green | 85 | Route B |
-| Orange | 127 | Route C |
+| MIDI value | Witchboard state |
+|---:|---|
+| 0 | Dry |
+| 42 | Route A |
+| 85 | Route B |
+| 127 | Route C |
+
+On my Michigan Synth Works XVI-M setup, those four button states are shown as
+off/red/green/orange. Those colours are controller-specific; Witchboard only
+exposes normal NT enum values.
 
 The preset maps the button CC with `Min = 0` and `Max = 4`. That is intentional.
 With controllers that send `0 / 42 / 85 / 127`, this creates four clean buckets
 for the NT mapping system, then Witchboard clamps the result to its valid enum
 range of `0..3`.
 
-For the supplied preset:
+For the supplied preset, my XVI-M button colour states select these routes:
 
 | Button state | Route name |
 |---|---|
