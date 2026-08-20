@@ -22,6 +22,8 @@ jobs:
 
       - name: Install ARM toolchain
         run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip
           curl --fail --location --retry 3 \
             --output "${RUNNER_TEMP}/arm-gnu-toolchain.tar.xz" \
             "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi.tar.xz"
