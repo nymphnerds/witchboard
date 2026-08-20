@@ -201,7 +201,6 @@ Reference images for my example setup:
 |---|---|
 | `assets/babyjaws.jpg` | My hardware setup for this preset. |
 | `assets/midiController.png` | My known-correct MiSW XVI-M controller configuration for this preset. |
-| `assets/current-patch-radiant-mixer-target.png` | My current NT patch context around the mixer/router section Witchboard replaces or simplifies. |
 
 These images are examples of how I use Witchboard. They are not requirements for
 the plugin. Witchboard exposes normal NT parameters, so the same plugin can be
@@ -210,8 +209,6 @@ mapped to different controllers, routes, inputs, and outputs.
 ![Witchboard example hardware setup](assets/babyjaws.jpg)
 
 ![Known-correct MiSW XVI-M MIDI controller setup](assets/midiController.png)
-
-![Current NT patch context](assets/current-patch-radiant-mixer-target.png)
 
 The preset names the routes:
 
@@ -251,23 +248,17 @@ channels.
 
 ## Installation
 
-Build the plugin:
-
-```sh
-make
-```
-
-By default the Makefile expects the official API at `../distingNT_API`. Override
-it with `NT_API_PATH` if needed:
-
-```sh
-make NT_API_PATH=/path/to/distingNT_API
-```
-
-Copy the compiled object to the disting NT MicroSD card:
+Download `Witchboard.o` or `Witchboard-plugin.zip` from the latest GitHub
+release:
 
 ```text
-plugins/Witchboard.o -> /programs/plug-ins/Witchboard.o
+https://github.com/nymphnerds/witchboard/releases
+```
+
+Copy the object to the disting NT MicroSD card:
+
+```text
+Witchboard.o -> /programs/plug-ins/Witchboard.o
 ```
 
 Then rescan plugins or restart the module.
@@ -282,16 +273,39 @@ presets/Witchboard Example.json
 Firmware/API note: this plugin is built against the official disting NT plugin
 API v13.
 
+## Building
+
+```sh
+make
+```
+
+By default the Makefile expects the official API at `../distingNT_API`. Override
+it with `NT_API_PATH` if needed:
+
+```sh
+make NT_API_PATH=/path/to/distingNT_API
+```
+
+For a release-ready local check:
+
+```sh
+make package NT_API_PATH=/path/to/distingNT_API
+```
+
+That runs the preset validator, C++ isolation test, ARM build, object inspection,
+and creates `release/Witchboard.o` plus `release/Witchboard-plugin.zip`.
+
 ## Repository Layout
 
 ```text
 Makefile
+.github/workflows/release.yaml
 src/WitchboardClean.cpp
-plugins/Witchboard.o
 presets/Witchboard Example.json
 assets/babyjaws.jpg
 assets/midiController.png
-assets/current-patch-radiant-mixer-target.png
+scripts/inspect_object.sh
+scripts/package_release.sh
 tests/WitchboardCleanTest.cpp
 tests/validate_preset.py
 GUIDE.md

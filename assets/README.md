@@ -11,7 +11,6 @@ patch.
 |---|---|
 | `babyjaws.jpg` | Photo of my hardware setup for this preset. |
 | `midiController.png` | My Michigan Synth Works XVI-M MIDI controller setup for this preset. |
-| `current-patch-radiant-mixer-target.png` | My Disting NT patch context around the mixer/router section Witchboard replaces or augments. |
 
 `midiController.png` shows my XVI-M setup:
 

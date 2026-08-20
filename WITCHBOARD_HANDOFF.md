@@ -8,13 +8,12 @@ This is the current handoff for building the full patch around the clean Witchbo
 |---|---|
 | GitHub repository | `https://github.com/nymphnerds/witchboard` |
 | Plugin source | `M:\DistingNT\WitchboardPlugin\src\WitchboardClean.cpp` |
-| Built plugin | `M:\DistingNT\WitchboardPlugin\plugins\Witchboard.o` |
+| Release workflow | `M:\DistingNT\WitchboardPlugin\.github\workflows\release.yaml` |
 | Installed plugin | `M:\DistingNT\programs\plug-ins\Witchboard.o` |
 | Backup/card-copy plugin | `M:\DistingNT\Babyjaws NT\programs\plug-ins\Witchboard.o` |
 | Example preset | `M:\DistingNT\WitchboardPlugin\presets\Witchboard Example.json` |
 | Hardware setup image | `M:\DistingNT\WitchboardPlugin\assets\babyjaws.jpg` |
 | MIDI controller setup image | `M:\DistingNT\WitchboardPlugin\assets\midiController.png` |
-| Current NT patch image | `M:\DistingNT\WitchboardPlugin\assets\current-patch-radiant-mixer-target.png` |
 | Preset validator | `M:\DistingNT\WitchboardPlugin\tests\validate_preset.py` |
 | Source isolation test | `M:\DistingNT\WitchboardPlugin\tests\WitchboardCleanTest.cpp` |
 
@@ -24,7 +23,6 @@ This is the current handoff for building the full patch around the clean Witchbo
 |---|---|
 | `assets\babyjaws.jpg` | Photo of my hardware setup for this preset. |
 | `assets\midiController.png` | My known-correct MiSW XVI-M setup for this preset: TRS 1, channels 1-16, fader CC9, Toggle 4P button CC80, values 0/42/85/127. |
-| `assets\current-patch-radiant-mixer-target.png` | My current NT patch context around the mixer/router area Witchboard replaces or simplifies. |
 
 These are example/reference images for my rig. They are not requirements for
 Witchboard. The plugin itself stays generic: mappings, routes, sources, outputs,
@@ -231,23 +229,43 @@ midiRealtime = NULL
 midiSysEx = NULL
 ```
 
-## Build And Install
+## Build, Release, And Install
 
-Build from the plugin directory:
+The repository should not track the compiled `.o`. Build artifacts belong in
+GitHub releases.
 
-```sh
-make NT_API_PATH=/tmp/distingNT_API-official
-```
-
-If the M: mount refuses to overwrite directly, compile to `/tmp/Witchboard.o` and copy it over:
+For a local release-style build from the plugin directory:
 
 ```sh
-arm-none-eabi-c++ -std=c++11 -mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -fno-rtti -fno-exceptions -Os -fPIC -Wall -I/tmp/distingNT_API-official/include -c -o /tmp/Witchboard.o src/WitchboardClean.cpp
-cp -a /tmp/Witchboard.o plugins/Witchboard.o
-cp -a /tmp/Witchboard.o /mnt/m/DistingNT/programs/plug-ins/Witchboard.o
+make package NT_API_PATH=/tmp/distingNT_API-official
 ```
 
-After copying the plugin, rescan plugins or restart the disting NT.
+This runs:
+
+- preset validation
+- C++ source isolation test
+- ARM build
+- object inspection for ELF format and global `pluginEntry`
+- release packaging
+
+Expected local release outputs:
+
+```text
+release/Witchboard.o
+release/Witchboard-plugin.zip
+```
+
+For Gallery/public distribution, push a version tag such as `v1.0.0`. The GitHub
+Action builds the plugin and attaches `Witchboard.o` and `Witchboard-plugin.zip`
+to the GitHub release.
+
+Install by copying `Witchboard.o` to:
+
+```text
+/programs/plug-ins/Witchboard.o
+```
+
+Then rescan plugins or restart the disting NT.
 
 ## Validation
 

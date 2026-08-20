@@ -988,7 +988,7 @@ static const _NT_factory witchboardFactory = {
 
 } // namespace
 
-uintptr_t pluginEntry(_NT_selector selector, uint32_t data)
+extern "C" uintptr_t pluginEntry(_NT_selector selector, uint32_t data)
 {
 	switch (selector)
 	{

@@ -1,0 +1,13 @@
+{
+  "name": "Witchboard",
+  "type": "cpp",
+  "guid": "WtC1",
+  "version": "1.0.0",
+  "category": "Utilities",
+  "minimumFirmware": "1.17.0",
+  "description": "Routing mixer and serial patchbay plugin for the Expert Sleepers disting NT.",
+  "releaseAssets": [
+    "Witchboard.o",
+    "Witchboard-plugin.zip"
+  ]
+}
