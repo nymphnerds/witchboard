@@ -1,0 +1,15 @@
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Build scratch files
+build/
+tmp/
+*.elf
+*.map
+
+# Keep release plugin objects under plugins/ trackable.
+*.o
+!plugins/*.o
