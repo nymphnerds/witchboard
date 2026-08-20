@@ -6,6 +6,17 @@ unset CDPATH
 repo_root="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 object="${OBJECT:-$repo_root/plugins/Witchboard.o}"
 release_dir="${RELEASE_DIR:-$repo_root/release}"
+
+case "$object" in
+    /*) ;;
+    *) object="$repo_root/$object" ;;
+esac
+
+case "$release_dir" in
+    /*) ;;
+    *) release_dir="$repo_root/$release_dir" ;;
+esac
+
 staging_dir="$release_dir/staging/witchboard"
 
 test -f "$object"
