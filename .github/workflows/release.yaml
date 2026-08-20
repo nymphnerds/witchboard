@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -48,14 +48,8 @@ jobs:
         run: |
           make clean
           make package
+          ls -la release
           sha256sum release/*
-
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: witchboard-plugin
-          path: release/*
-          if-no-files-found: error
 
       - name: Create GitHub Release
         if: github.ref_type == 'tag'
