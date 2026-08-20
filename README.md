@@ -45,6 +45,11 @@ route choices before gain, FX, and output routing. At the full 12-channel size,
 the insert selectors alone represent 24 four-state controls, or 96 possible route
 targets, if patched as ordinary mixer levels or mutes.
 
+In my current patch, doing this as one purpose-built plugin is also dramatically
+lighter on the disting NT CPU than building the same routing matrix from stock
+mixers. The Witchboard version is roughly an order of magnitude cheaper than the
+mixer-stack version it replaces.
+
 Witchboard compresses that into normal NT parameters:
 
 - `Insert 1`

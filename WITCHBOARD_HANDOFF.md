@@ -59,6 +59,10 @@ source
 
 Witchboard does not contain the compressor. The compressor/output routing is part of the larger NT patch.
 
+In this patch, Witchboard replaces a much heavier stock-mixer routing stack. The
+purpose-built plugin is roughly an order of magnitude lighter on CPU than
+building the same routing behaviour from multiple mixers and routers.
+
 ## Parameter Shape
 
 For a four-channel instance, Witchboard has 84 plugin parameters. Preset JSON has 85 values because the NT host common parameter comes first.
