@@ -7,7 +7,7 @@ This is the current handoff for building the full patch around the clean Witchbo
 | Item | Path |
 |---|---|
 | GitHub repository | `https://github.com/nymphnerds/witchboard` |
-| Plugin source | `M:\DistingNT\WitchboardPlugin\src\WitchboardClean.cpp` |
+| Plugin source | `M:\DistingNT\WitchboardPlugin\plugins\Witchboard\Witchboard.cpp` |
 | Release workflow | `M:\DistingNT\WitchboardPlugin\.github\workflows\release.yaml` |
 | Installed plugin | `M:\DistingNT\programs\plug-ins\Witchboard.o` |
 | Backup/card-copy plugin | `M:\DistingNT\Babyjaws NT\programs\plug-ins\Witchboard.o` |
@@ -35,7 +35,7 @@ and names can all be changed by hand.
 | Algorithm name | `Witchboard` |
 | GUID | `WtC1` |
 | API | disting NT plugin API v13 |
-| Source used by Makefile | `src/WitchboardClean.cpp` |
+| Source used by Makefile | `plugins/Witchboard/Witchboard.cpp` |
 | MIDI callbacks | None; native NT MIDI Mapping owns MIDI |
 | Serialisation | Used only for route/FX names via `witchboardNames` |
 

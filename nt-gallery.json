@@ -1,7 +1,10 @@
 {
   "name": "Witchboard",
   "type": "cpp",
+  "pluginType": "CPP",
   "guid": "WtC1",
+  "isCollection": false,
+  "collectionGuids": [],
   "version": "1.0.0",
   "category": "Utilities",
   "minimumFirmware": "1.17.0",

@@ -13,7 +13,7 @@ ARM_SIZE ?= arm-none-eabi-size
 
 BUILD_DIR := build
 RELEASE_DIR := release
-SOURCE := src/WitchboardClean.cpp
+SOURCE := plugins/Witchboard/Witchboard.cpp
 OUTPUT := plugins/Witchboard.o
 HOST_TEST := $(BUILD_DIR)/WitchboardCleanTest
 

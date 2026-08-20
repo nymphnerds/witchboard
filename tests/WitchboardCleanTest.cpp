@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include "../src/WitchboardClean.cpp"
+#include "../plugins/Witchboard/Witchboard.cpp"
 
 void _NT_jsonStream::openArray() {}
 void _NT_jsonStream::closeArray() {}

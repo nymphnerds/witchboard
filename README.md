@@ -8,6 +8,10 @@ external FX, and compressor-bypass paths from a MIDI controller.
 It is not a conventional mixer with a bigger channel count. It is the missing
 shape between a mixer, a patchbay, and a performance controller.
 
+| Plug-in | GUID | What it does | Release file |
+| --- | --- | --- | --- |
+| Witchboard | `WtC1` | Routing mixer and serial patchbay for the disting NT | `Witchboard.o` |
+
 ```text
 source
   -> channel gain
@@ -300,7 +304,7 @@ and creates `release/Witchboard.o` plus `release/Witchboard-plugin.zip`.
 ```text
 Makefile
 .github/workflows/release.yaml
-src/WitchboardClean.cpp
+plugins/Witchboard/Witchboard.cpp
 presets/Witchboard Example.json
 assets/babyjaws.jpg
 assets/midiController.png
@@ -312,7 +316,7 @@ GUIDE.md
 WIRING.md
 ```
 
-`src/WitchboardClean.cpp` is the current source used by the Makefile.
+`plugins/Witchboard/Witchboard.cpp` is the current source used by the Makefile.
 
 ## Validation
 
