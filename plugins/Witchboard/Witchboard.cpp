@@ -236,15 +236,11 @@ struct OutputPair
 {
 	float* left;
 	float* right;
-	int leftBus;
-	int rightBus;
 };
 
 typedef uint8_t ChannelPage[kNumChannelParams];
 
 static _NT_parameter parameterDefs[kMaxParams];
-static _NT_parameterPage pageDefs[3 + kMaxChannels];
-static ChannelPage channelPages[kMaxChannels];
 static bool parameterTablesBuilt = false;
 
 void buildParameters();
@@ -254,10 +250,12 @@ struct WitchboardAlgorithm : public _NT_algorithm
 	WitchboardAlgorithm(int channels);
 
 	void buildPages();
-	void setDefaultHardwareNames();
+	void setDefaultNames();
 
 	int numChannels;
 	_NT_parameterPages pages;
+	_NT_parameterPage* pageDefs;
+	ChannelPage* channelPages;
 	ChannelRuntime* runtime;
 	char routeNames[kNumRoutes][kHardwareNameLength];
 	char fxNames[2][kHardwareNameLength];
@@ -286,6 +284,8 @@ T* takeStorage(uint8_t*& cursor, int count)
 size_t requiredSram(int channels)
 {
 	size_t size = sizeof(WitchboardAlgorithm);
+	size = addStorage<_NT_parameterPage>(size, 3 + channels);
+	size = addStorage<ChannelPage>(size, channels);
 	size = addStorage<ChannelRuntime>(size, channels);
 	return size;
 }
@@ -294,9 +294,11 @@ WitchboardAlgorithm::WitchboardAlgorithm(int channels)
 	: numChannels(channels)
 {
 	uint8_t* sram = reinterpret_cast<uint8_t*>(this) + sizeof(*this);
+	pageDefs = takeStorage<_NT_parameterPage>(sram, 3 + numChannels);
+	channelPages = takeStorage<ChannelPage>(sram, numChannels);
 	runtime = takeStorage<ChannelRuntime>(sram, numChannels);
 	memset(runtime, 0, sizeof(ChannelRuntime) * numChannels);
-	setDefaultHardwareNames();
+	setDefaultNames();
 	if (!parameterTablesBuilt)
 	{
 		buildParameters();
@@ -370,7 +372,7 @@ void setWidth(_NT_parameter& parameter, const char* name, int defaultValue)
 		kNT_unitEnum, widthStrings);
 }
 
-void WitchboardAlgorithm::setDefaultHardwareNames()
+void WitchboardAlgorithm::setDefaultNames()
 {
 	for (int route = 0; route < kNumRoutes; ++route)
 		copyText(routeNames[route], kHardwareNameLength, defaultRouteNames[route]);
@@ -659,8 +661,6 @@ OutputPair makeOutputPair(float* busFrames, int numFrames, int leftBus, int righ
 	OutputPair pair;
 	pair.left = outputBus(busFrames, leftBus, numFrames);
 	pair.right = outputBus(busFrames, rightBus, numFrames);
-	pair.leftBus = leftBus;
-	pair.rightBus = rightBus;
 	return pair;
 }
 
@@ -689,8 +689,6 @@ struct CrossfadeGains
 
 inline CrossfadeGains shapedCrossfade(float mix)
 {
-	constexpr float kCurve = 3.0f;
-	static_assert(kCurve == 3.0f, "optimized crossfade assumes a fixed exponent of 3");
 	mix = mix < 0.0f ? 0.0f : (mix > 1.0f ? 1.0f : mix);
 	const float dryBase = 1.0f - mix;
 	const float a = dryBase * dryBase * dryBase;

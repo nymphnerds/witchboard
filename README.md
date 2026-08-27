@@ -15,7 +15,7 @@ cables.
 
 ## What's Changed From v1.0.0
 
-Compared with the old main-branch release, `v1.1.0` expands Witchboard from the
+Compared with the old main-branch release, `v1.1.1` expands Witchboard from the
 original fixed insert layout into a 12-channel routing matrix with five
 assignable insert routes. Each channel now has per-channel Slot 1/2/3 route
 assignments for both insert stages, so the same four-state control can mean
@@ -24,7 +24,9 @@ different hardware paths on different channels.
 The 4-state insert selectors now work cleanly from buttons, faders, knobs, or
 CV-mapped controls. Outputs are fixed to Add so the plugin stays within the NT
 parameter limit, and the public release now ships as `Witchboard.o` plus
-`Witchboard.zip`.
+`Witchboard.zip`. `v1.1.1` keeps that behavior and cleans up per-instance page
+storage so differently sized Witchboard instances do not share mutable page
+layout data.
 
 ## Signal Flow
 
@@ -187,6 +189,12 @@ FX Send 2 mix
 
 Each mix is a shaped dry/wet crossfade from the channel path into the shared FX
 send, smoothed by `Switch fade`.
+
+The crossfade is deliberately not linear. It uses a DJ-style shaped curve: most
+of the fader travel stays close to the dry or wet side, with a quicker blend
+through the middle. That makes it useful for performance moves because a send
+can sit mostly dry, mostly wet, or snap through the transition without feeling
+like a plain volume fade.
 
 At `0%`, the channel stays dry and sends nothing to that FX output. At `100%`,
 the channel is fully sent to that FX output and removed from the dry Main/Bypass

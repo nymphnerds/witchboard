@@ -44,9 +44,12 @@ _NT_algorithmMemoryPtrs allocateMemory(const _NT_algorithmRequirements& requirem
 {
 	_NT_algorithmMemoryPtrs memory = {};
 	memory.sram = static_cast<uint8_t*>(malloc(requirements.sram));
-	memory.dram = static_cast<uint8_t*>(malloc(requirements.dram));
 	assert(memory.sram);
-	assert(memory.dram);
+	if (requirements.dram > 0)
+	{
+		memory.dram = static_cast<uint8_t*>(malloc(requirements.dram));
+		assert(memory.dram);
+	}
 	return memory;
 }
 
@@ -93,9 +96,9 @@ void assertCrossfadeRouting(float fx1Mix, float fx2Mix,
 	float wet1[1] = {};
 	float wet2[1] = {};
 	OutputPair outputs[kNumOutputPairs] = {};
-	outputs[0] = { dry, NULL, 1, 0 };
-	outputs[2] = { wet1, NULL, 2, 0 };
-	outputs[3] = { wet2, NULL, 3, 0 };
+	outputs[0] = { dry, NULL };
+	outputs[2] = { wet1, NULL };
+	outputs[3] = { wet2, NULL };
 	const float* returnLeft[kNumRoutes] = {};
 	const float* returnRight[kNumRoutes] = {};
 	bool returnStereo[kNumRoutes] = {};
@@ -174,6 +177,8 @@ int main()
 	_NT_algorithmMemoryPtrs maxMemory = allocateMemory(maxChannelRequirements);
 	_NT_algorithm* maxAlgorithm = constructWitchboard(
 		maxMemory, maxChannelRequirements, maxChannelSpecs);
+	assert(algorithm->parameterPages->numPages == 7);
+	assert(maxAlgorithm->parameterPages->numPages == 15);
 
 	std::vector<int16_t> values(requirements.numParameters);
 	for (uint32_t i = 0; i < requirements.numParameters; ++i)
@@ -256,6 +261,13 @@ int main()
 	for (int channel = 0; channel < 4; ++channel)
 	{
 		const _NT_parameterPage& page = algorithm->parameterPages->pages[3 + channel];
+		assert(page.numParams == kNumChannelParams);
+		for (int p = 0; p < kNumChannelParams; ++p)
+			assert(page.params[p] == channelBase(channel) + p);
+	}
+	for (int channel = 0; channel < 12; ++channel)
+	{
+		const _NT_parameterPage& page = maxAlgorithm->parameterPages->pages[3 + channel];
 		assert(page.numParams == kNumChannelParams);
 		for (int p = 0; p < kNumChannelParams; ++p)
 			assert(page.params[p] == channelBase(channel) + p);
