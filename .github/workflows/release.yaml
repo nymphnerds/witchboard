@@ -55,12 +55,12 @@ jobs:
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v3
-        with:
-          files: |
-            release/Witchboard.o
-            release/Witchboard-plugin.zip
-          generate_release_notes: true
-          fail_on_unmatched_files: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            release/Witchboard.o \
+            release/Witchboard.zip \
+            --verify-tag \
+            --title "Witchboard ${GITHUB_REF_NAME}" \
+            --generate-notes

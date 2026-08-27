@@ -1,263 +1,227 @@
 # Witchboard
 
 Witchboard is a routing mixer and serial patchbay plugin for the Expert Sleepers
-disting NT. It was built for patches where a source should be playable like a
-normal mixer channel, but also be able to jump cleanly through hardware inserts,
-external FX, and compressor-bypass paths from a MIDI controller.
+disting NT.
 
-It is not a conventional mixer with a bigger channel count. It is the missing
-shape between a mixer, a patchbay, and a performance controller.
+Use it as a compact routing matrix for hardware, external devices, and internal
+paths. Patch gear, an iPad, a computer, or NT buses into Witchboard once, then
+try different source-to-route combinations from NT parameters, MIDI mappings,
+faders, buttons, knobs, or CV-mapped controls without constantly repatching
+cables.
 
-| Plug-in | GUID | What it does | Release file |
-| --- | --- | --- | --- |
-| Witchboard | `WtC1` | Routing mixer and serial patchbay for the disting NT | `Witchboard.o` |
-
-```text
-source
-  -> channel gain
-  -> Insert 1: Dry / Route A / Route B / Route C
-  -> Insert 2: Dry / Route A / Route B / Route C
-  -> FX Send 1 dry/wet crossfade
-  -> FX Send 2 dry/wet crossfade
-  -> Main or Bypass output path
-```
-
-One Witchboard instance can provide up to 12 source channels. Each channel has
-two independent insert selectors, two FX crossfades, gain, repeat protection, and
-a final Main/Bypass output choice.
-
-## Why It Exists
-
-The disting NT already has excellent mixer algorithms, but this patch wanted a
-different kind of control:
-
-- one button should choose exactly one insert route from four states
-- a second button should choose a second insert after the first
-- a fader should control source gain
-- another fader should crossfade into a stereo FX processor
-- selected channels should bypass the compressor while the rest go through it
-- all of this should stay readable on the NT screen and mappable with the native
-  MIDI Mapping system
-
-Doing that with stock mixers quickly becomes a mixer stack rather than a patch.
-For the supplied four-channel hardware preset, a practical stock version wants
-roughly seven separate mixer/router jobs: source/main mixing, compressor bypass,
-three hardware insert send/return paths, stereo FX send/return handling, and final
-output routing. The harder part is not only the algorithm count; it is the control
-surface. Four channels with two 4-state insert buttons already means 32 discrete
-route choices before gain, FX, and output routing. At the full 12-channel size,
-the insert selectors alone represent 24 four-state controls, or 96 possible route
-targets, if patched as ordinary mixer levels or mutes.
-
-In my current patch, doing this as one purpose-built plugin is also dramatically
-lighter on the disting NT CPU than building the same routing matrix from stock
-mixers. The Witchboard version is roughly an order of magnitude cheaper than the
-mixer-stack version it replaces.
-
-Witchboard compresses that into normal NT parameters:
-
-- `Insert 1`
-- `Insert 2`
-- `Gain`
-- `FX Send 1 mix`
-- `FX Send 2 mix`
-- `Output path`
-
-The result is much closer to playing a hardware performance matrix than managing
-a pile of mixer channels.
-
-## 4-State MIDI Buttons
-
-The important trick is that Witchboard exposes each insert selector as a normal
-four-state NT enum parameter:
-
-| Parameter value | Meaning |
-|---:|---|
-| 0 | Dry |
-| 1 | Route A |
-| 2 | Route B |
-| 3 | Route C |
-
-There is no private MIDI parser in the plugin. MIDI is owned by the disting NT's
-native MIDI Mapping system, so any parameter can be mapped, remapped, saved, and
-edited the normal NT way.
-
-The included hardware preset is set up for 4-state MIDI buttons that send these
-values on a single CC:
-
-| MIDI value | Witchboard state |
-|---:|---|
-| 0 | Dry |
-| 42 | Route A |
-| 85 | Route B |
-| 127 | Route C |
-
-On my Michigan Synth Works XVI-M setup, those four button states are shown as
-off/red/green/orange. Those colours are controller-specific; Witchboard only
-exposes normal NT enum values.
-
-The preset maps the button CC with `Min = 0` and `Max = 4`. That is intentional.
-With controllers that send `0 / 42 / 85 / 127`, this creates four clean buckets
-for the NT mapping system, then Witchboard clamps the result to its valid enum
-range of `0..3`.
-
-For the supplied preset, my XVI-M button colour states select these routes:
-
-| Button state | Route name |
-|---|---|
-| Off | Dry |
-| Red | Threetom MS22 |
-| Green | Pico MMF |
-| Orange | Percall 4 |
-
-This makes a 4-state MIDI button behave like a miniature patchbay selector
-instead of an on/off switch.
+| Plug-in | GUID | Release file |
+|---|---|---|
+| Witchboard | `WtC1` | `Witchboard.o` |
 
 ## Signal Flow
 
-Each channel is processed independently:
+Each channel runs:
 
 ```text
 Input/Left + optional Right Input
-  -> Gain
-  -> Insert 1 send/return
-  -> Insert 2 send/return
-  -> FX Send 1 dry/wet crossfade
-  -> FX Send 2 dry/wet crossfade
-  -> Main or Bypass output pair
+-> Gain
+-> Insert 1
+-> Insert 2
+-> FX Send 1 dry/wet crossfade
+-> FX Send 2 dry/wet crossfade
+-> Main or Bypass output path
 ```
 
-Insert routes can be mono or stereo. Mono returns are copied to both sides before
-the signal continues. FX returns are shared and mixed once, not once per source.
+Witchboard supports `1..12` channels. Unused channels can stay disabled or have
+`Input/Left` set to `None`.
 
-`Repeat protection` prevents a channel from selecting the same route for both
-inserts. For example, if Insert 1 is already using Route A, Insert 2 selecting
-Route A is treated as Dry.
+## Basic Setup
 
-`Switch fade` smooths gain, insert changes, and FX crossfades to avoid clicks.
+1. Set the `Channels` specification.
+2. Set each channel's `Input/Left`.
+3. For stereo sources, also set `Right Input`.
+4. Set `Main L/R` to the normal destination.
+5. Set `Bypass L/R` if some channels should skip a later processor.
+6. Configure the insert routes you want to use.
+7. Configure FX Send 1/2 only if you need shared send/return FX.
 
-## Parameters
+## Generic Example
 
-Witchboard has one specification:
+Say you have four sources and three insert paths:
 
-| Specification | Range | Default |
-|---|---:|---:|
-| `Channels` | 1-12 | 4 |
+```text
+Channel 1 -> drum voice
+Channel 2 -> bass voice
+Channel 3 -> chord voice
+Channel 4 -> lead voice
 
-Global pages configure:
+Route A -> mono filter
+Route B -> iPad or computer send/return
+Route C -> stereo distortion
+```
 
-- three insert routes, each with send bus, return bus, mono/stereo width, and
-  output mode
-- Main and Bypass stereo output pairs
-- two stereo FX sends with returns and return paths
-- switch fade time
+Patch each source into a Witchboard channel. Patch each processor or external
+device as an insert route with a send output and return input. Then set each
+channel's insert slots:
 
-Each channel provides:
+| Channel | Slot 1 | Slot 2 | Slot 3 |
+|---:|---|---|---|
+| 1 | Route A | Route C | Route B |
+| 2 | Route A | Route B | Route C |
+| 3 | Route B | Route A | Route C |
+| 4 | Route C | Route A | Route B |
 
-| Parameter | Purpose |
-|---|---|
-| `Enable` | Turns the channel on or off |
-| `Input/Left` | Mono input, or left side of a stereo input |
-| `Right Input` | Optional right side of a stereo input |
-| `Gain` | Channel level, `-inf` to `0 dB` |
-| `Insert 1` | First four-state route selector |
-| `Radiant mix` / `FX Send 1 mix` | Dry/wet crossfade into FX Send 1 |
-| `Insert 2` | Second four-state route selector |
-| `Output path` | Main or Bypass |
-| `Repeat protection` | Prevents both inserts choosing the same route |
-| `FX Send 2 mix` | Dry/wet crossfade into FX Send 2 |
+Now `Insert 1` and `Insert 2` work like quick selectors. The same button, fader,
+or knob can move a channel from Dry to Slot 1, Slot 2, or Slot 3 without changing
+patch cables.
 
-Route and FX names can be supplied by preset JSON under `witchboardNames`, so a
-hardware preset can show names such as `Threetom MS22`, `Pico MMF`, `Percall 4`,
-and `Radiant`.
+## Insert Routes
 
-## Included Hardware Preset
+Witchboard has five generic insert routes:
 
-`presets/Witchboard Example.json` is a complete four-channel example.
-It shows Witchboard being used as a performance router for a small hardware
-system built around three mono insert processors, one stereo FX processor, and a
-Michigan Synth Works XVI-M MIDI controller.
+```text
+Route A
+Route B
+Route C
+Route D
+Route E
+```
 
-| Witchboard channel | Source | Input | Output path | MIDI strips |
-|---:|---|---|---|---|
-| 1 | Radio Station | I1 | Main | 1 + 2 |
-| 2 | Chord Organ | I2 | Main | 3 + 4 |
-| 3 | Bass | I3 | Main | 5 + 6 |
-| 4 | Kick | Aux 21 | Bypass | 7 + 8 |
+Each route has a send output, return input, send width, and return width.
 
-Hardware in this example:
+For mono hardware, set send width and return width to `Mono`. For stereo
+hardware, set both widths to `Stereo` and set both L/R buses.
 
-| Role | Hardware | Witchboard connection |
-|---|---|---|
-| Source 1 | Radio Station through Percall 1 | I1 |
-| Source 2 | Chord Organ through Percall 2 | I2 |
-| Source 3 | Bass / Pony VCO voice | I3 |
-| Source 4 | Kick Sample Player | Aux 21 |
-| Insert A | Threetom MS22 | O3 -> MS22 -> I12 |
-| Insert B | Pico MMF | O4 -> Pico MMF -> I11 |
-| Insert C | Percall 4 | O5 -> Percall 4 -> I4 |
-| Stereo FX | Radiant | O7/O8 -> Radiant -> I7/I8 |
-| Final processor | Messor | O1/O2 -> Messor |
+All Witchboard outputs are fixed to Add. There are no Add/Replace output-mode
+parameters in the current layout.
 
-Reference images for my example setup:
+## Insert Slots
 
-| Asset | Shows |
-|---|---|
-| `assets/babyjaws.jpg` | My hardware setup for this preset. |
-| `assets/midiController.png` | My known-correct MiSW XVI-M controller configuration for this preset. |
+Each channel has two live insert selectors:
 
-These images are examples of how I use Witchboard. They are not requirements for
-the plugin. Witchboard exposes normal NT parameters, so the same plugin can be
-mapped to different controllers, routes, inputs, and outputs.
+```text
+Insert 1
+Insert 2
+```
 
-![Witchboard example hardware setup](assets/babyjaws.jpg)
+Each selector chooses:
 
-![Known-correct MiSW XVI-M MIDI controller setup](assets/midiController.png)
+| Value | State |
+|---:|---|
+| 0 | Dry |
+| 1 | Slot 1 |
+| 2 | Slot 2 |
+| 3 | Slot 3 |
+| 4 | Slot 3 |
 
-The preset names the routes:
+The slots are per channel and per insert. A slot is not hardwired to one route;
+the slot assignment parameters decide what route each slot uses:
 
-| Route | Hardware |
-|---|---|
-| Route A | Threetom MS22 |
-| Route B | Pico MMF |
-| Route C | Percall 4 |
-| FX Send 1 | Radiant |
-| FX Send 2 | iPad / spare |
+```text
+Insert 1 slot 1..3 -> Route A..E
+Insert 2 slot 1..3 -> Route A..E
+```
 
-The MIDI layout uses two adjacent controller strips per Witchboard channel:
+Default slot assignments are Slot 1 = Route A, Slot 2 = Route B, and Slot 3 =
+Route C.
 
-| Strip in pair | Fader | Button |
-|---|---|---|
-| First strip | `CC9` -> channel Gain | `CC80` -> Insert 1 |
-| Second strip | `CC9` -> Radiant mix | `CC80` -> Insert 2 |
+`Repeat protection` stops one channel from using the same route twice in series.
+When it is On, a duplicate route choice in Insert 2 behaves as Dry. When it is
+Off, both insert stages may use the same assigned route.
 
-The controller I use in this example is a Michigan Synth Works XVI-M:
+## Four-State Control
 
-| XVI-M strips | Port | MIDI channels | Faders | Buttons |
-|---:|---|---:|---|---|
-| 1-16 | TRS 1 | 1-16 | `CC9` | Toggle 4P, `CC80` |
+The insert selectors are normal NT parameters, so they can be mapped to a
+4-state button, fader, knob, CV-mapped control, or any other NT-mappable source.
 
-The `Witchboard Example` preset uses strips 1-8 for my four-channel example.
-Strips 9-16 follow the same controller pattern and are ready for manual mapping,
-or for expanding Witchboard to more channels.
-
-Each XVI-M button uses the same four transmitted values:
+A common 4-state controller sends:
 
 ```text
 0, 42, 85, 127
 ```
 
-The preset stores 16 native NT MIDI mappings: four controls for each of four
-channels.
-
-## Installation
-
-Download `Witchboard.o` or `Witchboard-plugin.zip` from the latest GitHub
-release:
+Map that controller to `Insert 1` or `Insert 2` with:
 
 ```text
-https://github.com/nymphnerds/witchboard/releases
+Min = 0
+Max = 4
 ```
+
+That creates four useful zones:
+
+| Incoming value | Result |
+|---:|---|
+| 0 | Dry |
+| 42 | Slot 1 |
+| 85 | Slot 2 |
+| 127 | Slot 3 |
+
+The extra top value, `4`, is handled as Slot 3. This keeps `0 / 42 / 85 / 127`
+controllers landing on the intended four states.
+
+For a fader or knob, think of the same control as four zones:
+
+```text
+low      -> Dry
+low-mid  -> Slot 1
+high-mid -> Slot 2
+high     -> Slot 3
+```
+
+## FX Sends
+
+Each channel has:
+
+```text
+FX Send 1 mix
+FX Send 2 mix
+```
+
+Each mix is a shaped dry/wet crossfade from the channel path into the shared FX
+send, smoothed by `Switch fade`.
+
+At `0%`, the channel stays dry and sends nothing to that FX output. At `100%`,
+the channel is fully sent to that FX output and removed from the dry Main/Bypass
+path for that send stage.
+
+Each FX return can be routed to Main or Bypass with `FX 1 return path` and
+`FX 2 return path`. FX returns are shared and mixed once, not once per source
+channel.
+
+## Output Paths
+
+Each channel can route to:
+
+| Output path | Destination |
+|---|---|
+| Main | `Main L/R` |
+| Bypass | `Bypass L/R` |
+
+Use Bypass when a channel should skip a later processor.
+
+## Naming
+
+Witchboard can show preset-specific names for routes, FX sends, and insert slot
+states. Names are preset data, not hardcoded plugin logic.
+
+Preset serialization supports:
+
+```text
+witchboardNames.routes
+witchboardNames.fx
+witchboardNames.slots
+```
+
+## Parameter Count
+
+Witchboard uses `49` global parameters and `16` parameters per channel.
+
+| Channels | Plugin parameters |
+|---:|---:|
+| 1 | 65 |
+| 4 | 113 |
+| 8 | 177 |
+| 12 | 241 |
+
+The current layout is designed so a 12-channel instance fits under the NT
+parameter limit.
+
+## Installation
 
 Copy the object to the disting NT MicroSD card:
 
@@ -267,15 +231,7 @@ Witchboard.o -> /programs/plug-ins/Witchboard.o
 
 Then rescan plugins or restart the module.
 
-The included preset can be copied to your NT preset folder and loaded after the
-plugin is installed:
-
-```text
-presets/Witchboard Example.json
-```
-
-Firmware/API note: this plugin is built against the official disting NT plugin
-API v13.
+This plugin is built against the official disting NT plugin API v13.
 
 ## Building
 
@@ -296,67 +252,31 @@ For a release-ready local check:
 make package NT_API_PATH=/path/to/distingNT_API
 ```
 
-That runs the preset validator, C++ isolation test, ARM build, object inspection,
-and creates `release/Witchboard.o` plus `release/Witchboard-plugin.zip`.
+That runs validation, the focused C++ host test, ARM build, object inspection,
+and creates release artifacts.
+
+## Quick Check
+
+After installing a new object:
+
+1. Add or load Witchboard.
+2. Confirm `Channels` can be set to the count you need.
+3. Set one channel input and leave both inserts Dry.
+4. Confirm dry audio reaches Main or Bypass.
+5. Configure one route send/return.
+6. Assign that route to `Insert 1 slot 1`.
+7. Change `Insert 1` from Dry to Slot 1.
+8. Confirm audio switches route immediately.
+9. Map a controller to `Insert 1` with `Min = 0`, `Max = 4`.
+10. Confirm the control selects Dry / Slot 1 / Slot 2 / Slot 3.
 
 ## Repository Layout
 
 ```text
 Makefile
-.github/workflows/release.yaml
 plugins/Witchboard/Witchboard.cpp
-presets/Witchboard Example.json
-assets/babyjaws.jpg
-assets/midiController.png
-scripts/inspect_object.sh
-scripts/package_release.sh
-tests/WitchboardCleanTest.cpp
-tests/validate_preset.py
-GUIDE.md
-WIRING.md
+scripts/
+tests/
 ```
 
 `plugins/Witchboard/Witchboard.cpp` is the current source used by the Makefile.
-
-## Validation
-
-The repo includes two focused checks:
-
-```sh
-python3 tests/validate_preset.py
-```
-
-Validates the supplied preset, including the 4-state MIDI mapping buckets:
-
-```text
-0 / 42 / 85 / 127 -> Dry / Route A / Route B / Route C
-```
-
-The C++ host test includes the plugin source and verifies that channel parameters
-are independent:
-
-```sh
-g++ -std=c++11 -I/path/to/distingNT_API/include tests/WitchboardCleanTest.cpp -o /tmp/WitchboardCleanTest
-/tmp/WitchboardCleanTest
-```
-
-## Design Rules
-
-Witchboard deliberately follows a simple NT-native model:
-
-- all controls are exposed as ordinary NT parameters
-- MIDI mapping is handled by the NT host, not by plugin-owned MIDI code
-- insert buttons are enum parameters, not raw MIDI values
-- route names come from preset serialization, not hardcoded controller logic
-- audio routing is explicit and per-channel
-
-That keeps the plugin portable across controllers and editable from the NT's own
-mapping UI.
-
-## References
-
-- Project repository: https://github.com/nymphnerds/witchboard
-- Expert Sleepers disting NT API: https://github.com/expertsleepersltd/distingNT_API
-- Expert Sleepers disting NT resources: https://github.com/expertsleepersltd/distingNT
-- Expert Sleepers firmware/manuals: https://www.expert-sleepers.co.uk/distingNTfirmwareupdates.html
-- Michigan Synth Works XVI-M: https://michigansynthworks.com/products/xvi-m

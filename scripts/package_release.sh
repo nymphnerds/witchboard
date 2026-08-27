@@ -33,10 +33,10 @@ printf '%s\n' \
 
 (
     cd "$staging_dir"
-    zip -q -r "$release_dir/Witchboard-plugin.zip" programs INSTALL.txt
+    zip -q -r "$release_dir/Witchboard.zip" programs INSTALL.txt
 )
 
 cp "$object" "$release_dir/Witchboard.o"
 rm -rf -- "$release_dir/staging"
 
-unzip -l "$release_dir/Witchboard-plugin.zip"
+unzip -l "$release_dir/Witchboard.zip"

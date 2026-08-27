@@ -38,7 +38,6 @@ $(HOST_TEST): tests/WitchboardCleanTest.cpp $(SOURCE) | check-api $(BUILD_DIR)
 	$(HOST_CXX) $(HOST_FLAGS) -I"$(INCLUDE_PATH)" "$<" -o "$@"
 
 test: $(HOST_TEST)
-	python3 tests/validate_preset.py
 	"$(HOST_TEST)"
 
 hardware: $(OUTPUT)

@@ -5,12 +5,12 @@
   "guid": "WtC1",
   "isCollection": false,
   "collectionGuids": [],
-  "version": "1.0.0",
+  "version": "1.1.0",
   "category": "Utilities",
   "minimumFirmware": "1.17.0",
   "description": "Routing mixer and serial patchbay plugin for the Expert Sleepers disting NT.",
   "releaseAssets": [
     "Witchboard.o",
-    "Witchboard-plugin.zip"
+    "Witchboard.zip"
   ]
 }

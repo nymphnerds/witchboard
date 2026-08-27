@@ -11,7 +11,7 @@ arm_nm="${ARM_NM:-arm-none-eabi-nm}"
 arm_readelf="${ARM_READELF:-arm-none-eabi-readelf}"
 arm_size="${ARM_SIZE:-arm-none-eabi-size}"
 
-allowed_undefined='^(NT_globals|_GLOBAL_OFFSET_TABLE_|memset|strlen|powf|_ZN13_NT_jsonParse10skipMemberEv|_ZN13_NT_jsonParse21numberOfArrayElementsERi|_ZN13_NT_jsonParse21numberOfObjectMembersERi|_ZN13_NT_jsonParse6stringERPKc|_ZN13_NT_jsonParse9matchNameEPKc|_ZN14_NT_jsonStream10closeArrayEv|_ZN14_NT_jsonStream10openObjectEv|_ZN14_NT_jsonStream11closeObjectEv|_ZN14_NT_jsonStream13addMemberNameEPKc|_ZN14_NT_jsonStream9addStringEPKc|_ZN14_NT_jsonStream9openArrayEv)$'
+allowed_undefined='^(NT_globals|_GLOBAL_OFFSET_TABLE_|memset|strlen|powf|sqrtf|_ZN13_NT_jsonParse10skipMemberEv|_ZN13_NT_jsonParse21numberOfArrayElementsERi|_ZN13_NT_jsonParse21numberOfObjectMembersERi|_ZN13_NT_jsonParse6stringERPKc|_ZN13_NT_jsonParse9matchNameEPKc|_ZN14_NT_jsonStream10closeArrayEv|_ZN14_NT_jsonStream10openObjectEv|_ZN14_NT_jsonStream11closeObjectEv|_ZN14_NT_jsonStream13addMemberNameEPKc|_ZN14_NT_jsonStream9addStringEPKc|_ZN14_NT_jsonStream9openArrayEv)$'
 
 for object in "$@"; do
     header="$($arm_readelf -h "$object")"

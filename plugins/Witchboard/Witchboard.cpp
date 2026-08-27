@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 #include <string.h>
 #include <math.h>
 #include <new>
@@ -10,21 +11,25 @@ namespace
 {
 
 constexpr int kMaxChannels = 12;
-constexpr int kNumRoutes = 3;
+constexpr int kNumRoutes = 5;
+constexpr int kNumInserts = 2;
+constexpr int kNumRouteParams = 6;
 constexpr int kNumInsertStates = 4;
-constexpr int kNumOutputPairs = 7;
-constexpr int kMaxClearBusses = kNumOutputPairs * 2;
-constexpr int kChannelNameLength = 40;
+constexpr int kInsertParameterMax = 4;
+constexpr int kNumOutputPairs = 4 + kNumRoutes;
 constexpr int kHardwareNameLength = 24;
-constexpr int kRouteParamNameLength = 40;
-constexpr int kMaxPages = 3 + kMaxChannels;
+constexpr int kSlotNameLength = 20;
 
-enum InsertState
+constexpr int kInsertDry = 0;
+
+enum RouteField
 {
-	kInsertDry,
-	kInsertRouteA,
-	kInsertRouteB,
-	kInsertRouteC,
+	kRouteOutputL,
+	kRouteOutputR,
+	kRouteReturnL,
+	kRouteReturnR,
+	kRouteSendWidth,
+	kRouteReturnWidth,
 };
 
 enum OutputPath
@@ -39,61 +44,27 @@ enum Width
 	kWidthStereo,
 };
 
-enum GlobalParam
-{
-	kParamFadeMs,
-
-	kParamRouteAOutputL,
-	kParamRouteAOutputR,
-	kParamRouteAReturnL,
-	kParamRouteAReturnR,
-	kParamRouteASendWidth,
-	kParamRouteAReturnWidth,
-	kParamRouteAMode,
-
-	kParamRouteBOutputL,
-	kParamRouteBOutputR,
-	kParamRouteBReturnL,
-	kParamRouteBReturnR,
-	kParamRouteBSendWidth,
-	kParamRouteBReturnWidth,
-	kParamRouteBMode,
-
-	kParamRouteCOutputL,
-	kParamRouteCOutputR,
-	kParamRouteCReturnL,
-	kParamRouteCReturnR,
-	kParamRouteCSendWidth,
-	kParamRouteCReturnWidth,
-	kParamRouteCMode,
-
-	kParamMainL,
-	kParamMainR,
-	kParamMainMode,
-	kParamBypassL,
-	kParamBypassR,
-	kParamBypassMode,
-
-	kParamFx1L,
-	kParamFx1R,
-	kParamFx1Width,
-	kParamFx1Mode,
-	kParamFx1ReturnL,
-	kParamFx1ReturnR,
-	kParamFx1ReturnWidth,
-	kParamFx1ReturnPath,
-
-	kParamFx2L,
-	kParamFx2R,
-	kParamFx2Width,
-	kParamFx2Mode,
-	kParamFx2ReturnL,
-	kParamFx2ReturnR,
-	kParamFx2ReturnWidth,
-	kParamFx2ReturnPath,
-
-	kNumGlobalParams,
-};
+constexpr int kParamFadeMs = 0;
+constexpr int kParamRoutes = kParamFadeMs + 1;
+constexpr int kParamMainL = kParamRoutes + kNumRoutes * kNumRouteParams;
+constexpr int kParamMainR = kParamMainL + 1;
+constexpr int kParamBypassL = kParamMainL + 2;
+constexpr int kParamBypassR = kParamMainL + 3;
+constexpr int kParamFx1L = kParamMainL + 4;
+constexpr int kParamFx1R = kParamMainL + 5;
+constexpr int kParamFx1Width = kParamMainL + 6;
+constexpr int kParamFx1ReturnL = kParamMainL + 7;
+constexpr int kParamFx1ReturnR = kParamMainL + 8;
+constexpr int kParamFx1ReturnWidth = kParamMainL + 9;
+constexpr int kParamFx1ReturnPath = kParamMainL + 10;
+constexpr int kParamFx2L = kParamMainL + 11;
+constexpr int kParamFx2R = kParamMainL + 12;
+constexpr int kParamFx2Width = kParamMainL + 13;
+constexpr int kParamFx2ReturnL = kParamMainL + 14;
+constexpr int kParamFx2ReturnR = kParamMainL + 15;
+constexpr int kParamFx2ReturnWidth = kParamMainL + 16;
+constexpr int kParamFx2ReturnPath = kParamMainL + 17;
+constexpr int kNumGlobalParams = kParamFx2ReturnPath + 1;
 
 enum ChannelParam
 {
@@ -102,8 +73,14 @@ enum ChannelParam
 	kChannelInputR,
 	kChannelGain,
 	kChannelInsert1,
-	kChannelRadiantMix,
+	kChannelInsert1Slot1,
+	kChannelInsert1Slot2,
+	kChannelInsert1Slot3,
+	kChannelFx1Mix,
 	kChannelInsert2,
+	kChannelInsert2Slot1,
+	kChannelInsert2Slot2,
+	kChannelInsert2Slot3,
 	kChannelOutputPath,
 	kChannelRepeatProtection,
 	kChannelFx2Mix,
@@ -115,12 +92,14 @@ constexpr int kRouteSetupParams = kParamMainL;
 constexpr int kFinalOutputParams = kParamFx1L - kParamMainL;
 constexpr int kFxSetupParams = kNumGlobalParams - kParamFx1L;
 constexpr int kMaxParams = kNumGlobalParams + kMaxChannels * kNumChannelParams;
-static_assert(kNumGlobalParams == 44, "global parameter count changed");
-static_assert(kNumChannelParams == 10, "channel parameter count changed");
+static_assert(kNumGlobalParams == 49, "global parameter count changed");
+static_assert(kParamMainL == 31, "final output page indices changed");
+static_assert(kParamFx1L == 35, "FX setup page indices changed");
+static_assert(kNumChannelParams == 16, "channel parameter count changed");
 static_assert(kChannelGain == 3, "Gain offset changed");
 static_assert(kChannelInsert1 == 4, "Insert 1 offset changed");
-static_assert(kChannelRadiantMix == 5, "Radiant mix offset changed");
-static_assert(kChannelInsert2 == 6, "Insert 2 offset changed");
+static_assert(kChannelFx1Mix == 8, "FX Send 1 mix offset changed");
+static_assert(kChannelInsert2 == 9, "Insert 2 offset changed");
 static_assert(kMaxParams <= 256, "parameter page indices are uint8_t");
 
 static char const* const offOnStrings[] = {
@@ -147,11 +126,85 @@ static char const* const channelSuffixes[kNumChannelParams] = {
 	"Right Input",
 	"Gain",
 	"Insert 1",
-	"Radiant mix",
+	"Insert 1 slot 1",
+	"Insert 1 slot 2",
+	"Insert 1 slot 3",
+	"FX Send 1 mix",
 	"Insert 2",
+	"Insert 2 slot 1",
+	"Insert 2 slot 2",
+	"Insert 2 slot 3",
 	"Output path",
 	"Repeat protection",
 	"FX Send 2 mix",
+};
+
+static char const* const defaultRouteNames[kNumRoutes] = {
+	"Route A", "Route B", "Route C", "Route D", "Route E",
+};
+
+static char const* const defaultFxNames[2] = {
+	"FX Send 1", "FX Send 2",
+};
+
+static char const* const defaultSlotNames[kNumInserts][kNumInsertStates] = {
+	{ "Dry", "Slot 1", "Slot 2", "Slot 3" },
+	{ "Dry", "Slot 1", "Slot 2", "Slot 3" },
+};
+
+static char const* const insertStateStrings[] = {
+	"Dry", "Slot 1", "Slot 2", "Slot 3", "Slot 3",
+};
+
+static char const* const defaultRouteParameterNames[kNumRoutes][kNumRouteParams] = {
+	{
+		"Route A output L", "Route A output R", "Route A return L",
+		"Route A return R", "Route A send width", "Route A return width",
+	},
+	{
+		"Route B output L", "Route B output R", "Route B return L",
+		"Route B return R", "Route B send width", "Route B return width",
+	},
+	{
+		"Route C output L", "Route C output R", "Route C return L",
+		"Route C return R", "Route C send width", "Route C return width",
+	},
+	{
+		"Route D output L", "Route D output R", "Route D return L",
+		"Route D return R", "Route D send width", "Route D return width",
+	},
+	{
+		"Route E output L", "Route E output R", "Route E return L",
+		"Route E return R", "Route E send width", "Route E return width",
+	},
+};
+
+static char const* const defaultFxParameterNames[2][7] = {
+	{
+		"FX Send 1 L", "FX Send 1 R", "FX Send 1 width",
+		"FX 1 return L", "FX 1 return R", "FX 1 return width",
+		"FX 1 return path",
+	},
+	{
+		"FX Send 2 L", "FX Send 2 R", "FX Send 2 width",
+		"FX 2 return L", "FX 2 return R", "FX 2 return width",
+		"FX 2 return path",
+	},
+};
+
+static const uint8_t routeSetupPageParams[kRouteSetupParams] = {
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+	12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+	24, 25, 26, 27, 28, 29, 30,
+};
+
+static const uint8_t finalOutputPageParams[kFinalOutputParams] = {
+	31, 32, 33, 34,
+};
+
+static const uint8_t fxSetupPageParams[kFxSetupParams] = {
+	35, 36, 37, 38, 39, 40, 41,
+	42, 43, 44, 45, 46, 47, 48,
 };
 
 static const _NT_specification specifications[] = {
@@ -170,12 +223,12 @@ struct SmoothedValue
 struct ChannelRuntime
 {
 	bool initialised;
-	int insertState[2];
-	int insertSamplesRemaining[2];
-	float insertGain[2][kNumInsertStates];
-	float insertIncrement[2][kNumInsertStates];
+	int8_t insertState[kNumInserts];
+	int insertSamplesRemaining[kNumInserts];
+	float insertGain[kNumInserts][kNumInsertStates];
+	float insertIncrement[kNumInserts][kNumInsertStates];
 	SmoothedValue gain;
-	SmoothedValue radiantMix;
+	SmoothedValue fx1Mix;
 	SmoothedValue fx2Mix;
 };
 
@@ -187,41 +240,72 @@ struct OutputPair
 	int rightBus;
 };
 
+typedef uint8_t ChannelPage[kNumChannelParams];
+
+static _NT_parameter parameterDefs[kMaxParams];
+static _NT_parameterPage pageDefs[3 + kMaxChannels];
+static ChannelPage channelPages[kMaxChannels];
+static bool parameterTablesBuilt = false;
+
+void buildParameters();
+
 struct WitchboardAlgorithm : public _NT_algorithm
 {
-	WitchboardAlgorithm(int channels)
-	: numChannels(channels)
-	{
-		memset(runtime, 0, sizeof(runtime));
-		setGenericNames();
-		buildParameters();
-		refreshHardwareNames();
-		buildPages();
-		parameters = parameterDefs;
-		parameterPages = &pages;
-	}
+	WitchboardAlgorithm(int channels);
 
-	void buildParameters();
 	void buildPages();
-	void setGenericNames();
-	void refreshHardwareNames();
+	void setDefaultHardwareNames();
 
 	int numChannels;
-	_NT_parameter parameterDefs[kMaxParams];
 	_NT_parameterPages pages;
-	_NT_parameterPage pageDefs[kMaxPages];
-	uint8_t routeSetupPage[kRouteSetupParams];
-	uint8_t finalOutputPage[kFinalOutputParams];
-	uint8_t fxSetupPage[kFxSetupParams];
-	uint8_t channelPages[kMaxChannels][kNumChannelParams];
-	char channelNames[kMaxChannels][kNumChannelParams][kChannelNameLength];
+	ChannelRuntime* runtime;
 	char routeNames[kNumRoutes][kHardwareNameLength];
 	char fxNames[2][kHardwareNameLength];
-	char routeParameterNames[kNumRoutes][7][kRouteParamNameLength];
-	char fxParameterNames[2][8][kRouteParamNameLength];
-	char const* insertStrings[kNumInsertStates];
-	ChannelRuntime runtime[kMaxChannels];
+	char slotNames[kNumInserts][kNumInsertStates][kSlotNameLength];
 };
+
+inline size_t alignedSize(size_t size, size_t alignment)
+{
+	return (size + alignment - 1) & ~(alignment - 1);
+}
+
+template <typename T>
+size_t addStorage(size_t size, int count)
+{
+	return alignedSize(size, alignof(T)) + sizeof(T) * count;
+}
+
+template <typename T>
+T* takeStorage(uint8_t*& cursor, int count)
+{
+	const uintptr_t address = alignedSize(reinterpret_cast<uintptr_t>(cursor), alignof(T));
+	cursor = reinterpret_cast<uint8_t*>(address + sizeof(T) * count);
+	return reinterpret_cast<T*>(address);
+}
+
+size_t requiredSram(int channels)
+{
+	size_t size = sizeof(WitchboardAlgorithm);
+	size = addStorage<ChannelRuntime>(size, channels);
+	return size;
+}
+
+WitchboardAlgorithm::WitchboardAlgorithm(int channels)
+	: numChannels(channels)
+{
+	uint8_t* sram = reinterpret_cast<uint8_t*>(this) + sizeof(*this);
+	runtime = takeStorage<ChannelRuntime>(sram, numChannels);
+	memset(runtime, 0, sizeof(ChannelRuntime) * numChannels);
+	setDefaultHardwareNames();
+	if (!parameterTablesBuilt)
+	{
+		buildParameters();
+		parameterTablesBuilt = true;
+	}
+	buildPages();
+	parameters = parameterDefs;
+	parameterPages = &pages;
+}
 
 inline int clampInt(int value, int minimum, int maximum)
 {
@@ -233,6 +317,21 @@ inline int channelBase(int channel)
 	return kNumGlobalParams + channel * kNumChannelParams;
 }
 
+constexpr int routeParam(int route, int field)
+{
+	return kParamRoutes + route * kNumRouteParams + field;
+}
+
+inline int channelInsertSlotParam(int insert, int slot)
+{
+	return (insert == 0 ? kChannelInsert1Slot1 : kChannelInsert2Slot1) + slot;
+}
+
+inline int insertParameterToState(int value)
+{
+	return clampInt(value, 0, kNumInsertStates - 1);
+}
+
 void copyText(char* destination, int capacity, const char* source)
 {
 	if (!source)
@@ -241,34 +340,6 @@ void copyText(char* destination, int capacity, const char* source)
 	for (; i < capacity - 1 && source[i]; ++i)
 		destination[i] = source[i];
 	destination[i] = 0;
-}
-
-void appendText(char* destination, int capacity, const char* source)
-{
-	int length = strlen(destination);
-	for (int i = 0; length < capacity - 1 && source[i]; ++i)
-		destination[length++] = source[i];
-	destination[length] = 0;
-}
-
-void makeChannelName(char* destination, int capacity, int channel, const char* suffix)
-{
-	copyText(destination, capacity, "Ch ");
-	char number[4];
-	if (channel < 10)
-	{
-		number[0] = static_cast<char>('0' + channel);
-		number[1] = 0;
-	}
-	else
-	{
-		number[0] = '1';
-		number[1] = static_cast<char>('0' + channel - 10);
-		number[2] = 0;
-	}
-	appendText(destination, capacity, number);
-	appendText(destination, capacity, " ");
-	appendText(destination, capacity, suffix);
 }
 
 void setParameter(_NT_parameter& parameter, const char* name, int minimum, int maximum,
@@ -293,186 +364,130 @@ void setOutput(_NT_parameter& parameter, const char* name)
 	setParameter(parameter, name, 0, kNT_lastBus, 0, kNT_unitAudioOutput);
 }
 
-void setOutputMode(_NT_parameter& parameter, const char* name)
-{
-	setParameter(parameter, name, 0, 1, 0, kNT_unitOutputMode);
-}
-
 void setWidth(_NT_parameter& parameter, const char* name, int defaultValue)
 {
 	setParameter(parameter, name, kWidthMono, kWidthStereo, defaultValue,
 		kNT_unitEnum, widthStrings);
 }
 
-void WitchboardAlgorithm::setGenericNames()
+void WitchboardAlgorithm::setDefaultHardwareNames()
 {
-	static const char* const routes[kNumRoutes] = {
-		"Route A", "Route B", "Route C",
-	};
-	static const char* const fx[2] = {
-		"FX Send 1", "FX Send 2",
-	};
 	for (int route = 0; route < kNumRoutes; ++route)
-		copyText(routeNames[route], kHardwareNameLength, routes[route]);
-	for (int i = 0; i < 2; ++i)
-		copyText(fxNames[i], kHardwareNameLength, fx[i]);
-}
-
-void WitchboardAlgorithm::refreshHardwareNames()
-{
-	static const char* const routeSuffixes[7] = {
-		" output L", " output R", " return L", " return R",
-		" send width", " return width", " output mode",
-	};
-	static const char* const fxSuffixes[8] = {
-		" send L", " send R", " send width", " output mode",
-		" return L", " return R", " return width", " return path",
-	};
-
-	insertStrings[kInsertDry] = "Dry";
-	for (int route = 0; route < kNumRoutes; ++route)
-	{
-		insertStrings[kInsertRouteA + route] = routeNames[route];
-		for (int field = 0; field < 7; ++field)
-		{
-			copyText(routeParameterNames[route][field], kRouteParamNameLength,
-				routeNames[route]);
-			appendText(routeParameterNames[route][field], kRouteParamNameLength,
-				routeSuffixes[field]);
-			parameterDefs[kParamRouteAOutputL + route * 7 + field].name =
-				routeParameterNames[route][field];
-		}
-	}
-
+		copyText(routeNames[route], kHardwareNameLength, defaultRouteNames[route]);
 	for (int fx = 0; fx < 2; ++fx)
-	{
-		for (int field = 0; field < 8; ++field)
-		{
-			copyText(fxParameterNames[fx][field], kRouteParamNameLength, fxNames[fx]);
-			appendText(fxParameterNames[fx][field], kRouteParamNameLength,
-				fxSuffixes[field]);
-			parameterDefs[kParamFx1L + fx * 8 + field].name =
-				fxParameterNames[fx][field];
-		}
-	}
+		copyText(fxNames[fx], kHardwareNameLength, defaultFxNames[fx]);
+	for (int insert = 0; insert < kNumInserts; ++insert)
+		for (int state = 0; state < kNumInsertStates; ++state)
+			copyText(slotNames[insert][state], kSlotNameLength,
+				defaultSlotNames[insert][state]);
 }
 
-void WitchboardAlgorithm::buildParameters()
+void buildParameters()
 {
 	setParameter(parameterDefs[kParamFadeMs], "Switch fade", 0, 100, 2, kNT_unitMs);
 
-	setOutput(parameterDefs[kParamRouteAOutputL], "Route A output L");
-	setOutput(parameterDefs[kParamRouteAOutputR], "Route A output R");
-	setInput(parameterDefs[kParamRouteAReturnL], "Route A return L");
-	setInput(parameterDefs[kParamRouteAReturnR], "Route A return R");
-	setWidth(parameterDefs[kParamRouteASendWidth], "Route A send width", kWidthMono);
-	setWidth(parameterDefs[kParamRouteAReturnWidth], "Route A return width", kWidthMono);
-	setOutputMode(parameterDefs[kParamRouteAMode], "Route A output mode");
-
-	setOutput(parameterDefs[kParamRouteBOutputL], "Route B output L");
-	setOutput(parameterDefs[kParamRouteBOutputR], "Route B output R");
-	setInput(parameterDefs[kParamRouteBReturnL], "Route B return L");
-	setInput(parameterDefs[kParamRouteBReturnR], "Route B return R");
-	setWidth(parameterDefs[kParamRouteBSendWidth], "Route B send width", kWidthMono);
-	setWidth(parameterDefs[kParamRouteBReturnWidth], "Route B return width", kWidthMono);
-	setOutputMode(parameterDefs[kParamRouteBMode], "Route B output mode");
-
-	setOutput(parameterDefs[kParamRouteCOutputL], "Route C output L");
-	setOutput(parameterDefs[kParamRouteCOutputR], "Route C output R");
-	setInput(parameterDefs[kParamRouteCReturnL], "Route C return L");
-	setInput(parameterDefs[kParamRouteCReturnR], "Route C return R");
-	setWidth(parameterDefs[kParamRouteCSendWidth], "Route C send width", kWidthMono);
-	setWidth(parameterDefs[kParamRouteCReturnWidth], "Route C return width", kWidthMono);
-	setOutputMode(parameterDefs[kParamRouteCMode], "Route C output mode");
+	for (int route = 0; route < kNumRoutes; ++route)
+	{
+		setOutput(parameterDefs[routeParam(route, kRouteOutputL)],
+			defaultRouteParameterNames[route][kRouteOutputL]);
+		setOutput(parameterDefs[routeParam(route, kRouteOutputR)],
+			defaultRouteParameterNames[route][kRouteOutputR]);
+		setInput(parameterDefs[routeParam(route, kRouteReturnL)],
+			defaultRouteParameterNames[route][kRouteReturnL]);
+		setInput(parameterDefs[routeParam(route, kRouteReturnR)],
+			defaultRouteParameterNames[route][kRouteReturnR]);
+		setWidth(parameterDefs[routeParam(route, kRouteSendWidth)],
+			defaultRouteParameterNames[route][kRouteSendWidth], kWidthMono);
+		setWidth(parameterDefs[routeParam(route, kRouteReturnWidth)],
+			defaultRouteParameterNames[route][kRouteReturnWidth], kWidthMono);
+	}
 
 	setOutput(parameterDefs[kParamMainL], "Main L");
 	setOutput(parameterDefs[kParamMainR], "Main R");
-	setOutputMode(parameterDefs[kParamMainMode], "Main output mode");
 	setOutput(parameterDefs[kParamBypassL], "Bypass L");
 	setOutput(parameterDefs[kParamBypassR], "Bypass R");
-	setOutputMode(parameterDefs[kParamBypassMode], "Bypass output mode");
 
-	setOutput(parameterDefs[kParamFx1L], "FX Send 1 L");
-	setOutput(parameterDefs[kParamFx1R], "FX Send 1 R");
-	setWidth(parameterDefs[kParamFx1Width], "FX Send 1 width", kWidthStereo);
-	setOutputMode(parameterDefs[kParamFx1Mode], "FX Send 1 output mode");
-	setInput(parameterDefs[kParamFx1ReturnL], "FX 1 return L");
-	setInput(parameterDefs[kParamFx1ReturnR], "FX 1 return R");
-	setWidth(parameterDefs[kParamFx1ReturnWidth], "FX 1 return width", kWidthStereo);
-	setParameter(parameterDefs[kParamFx1ReturnPath], "FX 1 return path", 0, 1,
+	setOutput(parameterDefs[kParamFx1L], defaultFxParameterNames[0][0]);
+	setOutput(parameterDefs[kParamFx1R], defaultFxParameterNames[0][1]);
+	setWidth(parameterDefs[kParamFx1Width], defaultFxParameterNames[0][2], kWidthStereo);
+	setInput(parameterDefs[kParamFx1ReturnL], defaultFxParameterNames[0][3]);
+	setInput(parameterDefs[kParamFx1ReturnR], defaultFxParameterNames[0][4]);
+	setWidth(parameterDefs[kParamFx1ReturnWidth], defaultFxParameterNames[0][5],
+		kWidthStereo);
+	setParameter(parameterDefs[kParamFx1ReturnPath], defaultFxParameterNames[0][6], 0, 1,
 		kOutputPathMain, kNT_unitEnum, outputPathStrings);
 
-	setOutput(parameterDefs[kParamFx2L], "FX Send 2 L");
-	setOutput(parameterDefs[kParamFx2R], "FX Send 2 R");
-	setWidth(parameterDefs[kParamFx2Width], "FX Send 2 width", kWidthStereo);
-	setOutputMode(parameterDefs[kParamFx2Mode], "FX Send 2 output mode");
-	setInput(parameterDefs[kParamFx2ReturnL], "FX 2 return L");
-	setInput(parameterDefs[kParamFx2ReturnR], "FX 2 return R");
-	setWidth(parameterDefs[kParamFx2ReturnWidth], "FX 2 return width", kWidthStereo);
-	setParameter(parameterDefs[kParamFx2ReturnPath], "FX 2 return path", 0, 1,
+	setOutput(parameterDefs[kParamFx2L], defaultFxParameterNames[1][0]);
+	setOutput(parameterDefs[kParamFx2R], defaultFxParameterNames[1][1]);
+	setWidth(parameterDefs[kParamFx2Width], defaultFxParameterNames[1][2], kWidthStereo);
+	setInput(parameterDefs[kParamFx2ReturnL], defaultFxParameterNames[1][3]);
+	setInput(parameterDefs[kParamFx2ReturnR], defaultFxParameterNames[1][4]);
+	setWidth(parameterDefs[kParamFx2ReturnWidth], defaultFxParameterNames[1][5],
+		kWidthStereo);
+	setParameter(parameterDefs[kParamFx2ReturnPath], defaultFxParameterNames[1][6], 0, 1,
 		kOutputPathMain, kNT_unitEnum, outputPathStrings);
 
-	for (int channel = 0; channel < numChannels; ++channel)
+	for (int channel = 0; channel < kMaxChannels; ++channel)
 	{
 		const int base = channelBase(channel);
-		for (int parameter = 0; parameter < kNumChannelParams; ++parameter)
-			makeChannelName(channelNames[channel][parameter], kChannelNameLength,
-				channel + 1, channelSuffixes[parameter]);
-
 		setParameter(parameterDefs[base + kChannelEnable],
-			channelNames[channel][kChannelEnable], 0, 1, 1, kNT_unitEnum, offOnStrings);
-		setInput(parameterDefs[base + kChannelInputL], channelNames[channel][kChannelInputL]);
-		setInput(parameterDefs[base + kChannelInputR], channelNames[channel][kChannelInputR]);
+			channelSuffixes[kChannelEnable], 0, 1, 1, kNT_unitEnum, offOnStrings);
+		setInput(parameterDefs[base + kChannelInputL], channelSuffixes[kChannelInputL]);
+		setInput(parameterDefs[base + kChannelInputR], channelSuffixes[kChannelInputR]);
 		setParameter(parameterDefs[base + kChannelGain],
-			channelNames[channel][kChannelGain], -60, 0, 0, kNT_unitDb_minInf);
+			channelSuffixes[kChannelGain], -60, 0, 0, kNT_unitDb_minInf);
 		setParameter(parameterDefs[base + kChannelInsert1],
-			channelNames[channel][kChannelInsert1], 0, 3, 0, kNT_unitEnum, insertStrings);
-		setParameter(parameterDefs[base + kChannelRadiantMix],
-			channelNames[channel][kChannelRadiantMix], 0, 100, 0, kNT_unitPercent);
+			channelSuffixes[kChannelInsert1], 0, kInsertParameterMax, 0,
+			kNT_unitEnum, insertStateStrings);
+		for (int slot = 0; slot < 3; ++slot)
+			setParameter(parameterDefs[base + kChannelInsert1Slot1 + slot],
+				channelSuffixes[kChannelInsert1Slot1 + slot], 0, kNumRoutes - 1,
+				slot, kNT_unitHasStrings);
+		setParameter(parameterDefs[base + kChannelFx1Mix],
+			channelSuffixes[kChannelFx1Mix], 0, 100, 0, kNT_unitPercent);
 		setParameter(parameterDefs[base + kChannelInsert2],
-			channelNames[channel][kChannelInsert2], 0, 3, 0, kNT_unitEnum, insertStrings);
+			channelSuffixes[kChannelInsert2], 0, kInsertParameterMax, 0,
+			kNT_unitEnum, insertStateStrings);
+		for (int slot = 0; slot < 3; ++slot)
+			setParameter(parameterDefs[base + kChannelInsert2Slot1 + slot],
+				channelSuffixes[kChannelInsert2Slot1 + slot], 0, kNumRoutes - 1,
+				slot, kNT_unitHasStrings);
 		setParameter(parameterDefs[base + kChannelOutputPath],
-			channelNames[channel][kChannelOutputPath], 0, 1, kOutputPathMain,
+			channelSuffixes[kChannelOutputPath], 0, 1, kOutputPathMain,
 			kNT_unitEnum, outputPathStrings);
 		setParameter(parameterDefs[base + kChannelRepeatProtection],
-			channelNames[channel][kChannelRepeatProtection], 0, 1, 1,
+			channelSuffixes[kChannelRepeatProtection], 0, 1, 1,
 			kNT_unitEnum, offOnStrings);
 		setParameter(parameterDefs[base + kChannelFx2Mix],
-			channelNames[channel][kChannelFx2Mix], 0, 100, 0, kNT_unitPercent);
+			channelSuffixes[kChannelFx2Mix], 0, 100, 0, kNT_unitPercent);
 	}
 }
 
 void WitchboardAlgorithm::buildPages()
 {
 	int page = 0;
-	for (int i = 0; i < kRouteSetupParams; ++i)
-		routeSetupPage[i] = i;
 	pageDefs[page++] = {
 		.name = "Route Setup",
 		.numParams = kRouteSetupParams,
 		.group = 1,
 		.unused = { 0, 0 },
-		.params = routeSetupPage,
+		.params = routeSetupPageParams,
 	};
 
-	for (int i = 0; i < kFinalOutputParams; ++i)
-		finalOutputPage[i] = kParamMainL + i;
 	pageDefs[page++] = {
 		.name = "Final Outputs",
 		.numParams = kFinalOutputParams,
 		.group = 2,
 		.unused = { 0, 0 },
-		.params = finalOutputPage,
+		.params = finalOutputPageParams,
 	};
 
-	for (int i = 0; i < kFxSetupParams; ++i)
-		fxSetupPage[i] = kParamFx1L + i;
 	pageDefs[page++] = {
 		.name = "FX Setup",
 		.numParams = kFxSetupParams,
 		.group = 3,
 		.unused = { 0, 0 },
-		.params = fxSetupPage,
+		.params = fxSetupPageParams,
 	};
 
 	for (int channel = 0; channel < numChannels; ++channel)
@@ -547,11 +562,11 @@ void advanceSmooth(SmoothedValue& smooth)
 }
 
 void initialiseChannel(ChannelRuntime& runtime, int insert1, int insert2,
-	int gainDb, int radiantPercent, int fx2Percent)
+	int gainDb, int fx1Percent, int fx2Percent)
 {
 	runtime.initialised = true;
-	const int inserts[2] = { insert1, insert2 };
-	for (int insert = 0; insert < 2; ++insert)
+	const int inserts[kNumInserts] = { insert1, insert2 };
+	for (int insert = 0; insert < kNumInserts; ++insert)
 	{
 		runtime.insertState[insert] = inserts[insert];
 		runtime.insertSamplesRemaining[insert] = 0;
@@ -562,7 +577,7 @@ void initialiseChannel(ChannelRuntime& runtime, int insert1, int insert2,
 		}
 	}
 	initialiseSmooth(runtime.gain, gainDb, dbGain(gainDb));
-	initialiseSmooth(runtime.radiantMix, radiantPercent, percentGain(radiantPercent));
+	initialiseSmooth(runtime.fx1Mix, fx1Percent, percentGain(fx1Percent));
 	initialiseSmooth(runtime.fx2Mix, fx2Percent, percentGain(fx2Percent));
 }
 
@@ -591,7 +606,7 @@ void beginInsertFade(ChannelRuntime& runtime, int insert, int state, int fadeSam
 
 void advanceChannel(ChannelRuntime& runtime)
 {
-	for (int insert = 0; insert < 2; ++insert)
+	for (int insert = 0; insert < kNumInserts; ++insert)
 	{
 		if (runtime.insertSamplesRemaining[insert] <= 0)
 			continue;
@@ -605,8 +620,38 @@ void advanceChannel(ChannelRuntime& runtime)
 		}
 	}
 	advanceSmooth(runtime.gain);
-	advanceSmooth(runtime.radiantMix);
+	advanceSmooth(runtime.fx1Mix);
 	advanceSmooth(runtime.fx2Mix);
+}
+
+// NT parameter changes can arrive outside the audio step.  Invalidate only the
+// affected insert cache so the existing step() code observes the current self->v
+// value and starts the normal insert fade on the next audio block.
+void parameterChanged(_NT_algorithm* algorithm, int parameter)
+{
+	WitchboardAlgorithm* self = static_cast<WitchboardAlgorithm*>(algorithm);
+	if (!self || parameter < kNumGlobalParams)
+		return;
+
+	const int relative = parameter - kNumGlobalParams;
+	const int channel = relative / kNumChannelParams;
+	const int field = relative % kNumChannelParams;
+	if (channel < 0 || channel >= self->numChannels)
+		return;
+
+	int insert = -1;
+	if (field == kChannelInsert1)
+		insert = 0;
+	else if (field == kChannelInsert2)
+		insert = 1;
+	else
+		return;
+
+	ChannelRuntime& rt = self->runtime[channel];
+
+	// Valid insert states are 0..3, so -1 is guaranteed to differ from the
+	// newly selected state. step() will call beginInsertFade() using self->v.
+	rt.insertState[insert] = -1;
 }
 
 OutputPair makeOutputPair(float* busFrames, int numFrames, int leftBus, int rightBus)
@@ -617,27 +662,6 @@ OutputPair makeOutputPair(float* busFrames, int numFrames, int leftBus, int righ
 	pair.leftBus = leftBus;
 	pair.rightBus = rightBus;
 	return pair;
-}
-
-void addClearBus(float** pointers, int* busNumbers, int& count, float* pointer, int busNumber)
-{
-	if (!pointer || busNumber <= 0)
-		return;
-	for (int i = 0; i < count; ++i)
-		if (busNumbers[i] == busNumber)
-			return;
-	pointers[count] = pointer;
-	busNumbers[count] = busNumber;
-	++count;
-}
-
-void addPairToClearList(const OutputPair& pair, bool replace, float** pointers,
-	int* busNumbers, int& count)
-{
-	if (!replace)
-		return;
-	addClearBus(pointers, busNumbers, count, pair.left, pair.leftBus);
-	addClearBus(pointers, busNumbers, count, pair.right, pair.rightBus);
 }
 
 void addSignal(const OutputPair& pair, int frame, float left, float right,
@@ -657,11 +681,31 @@ void addSignal(const OutputPair& pair, int frame, float left, float right,
 	}
 }
 
-void processPath(const WitchboardAlgorithm* self, OutputPair* outputs,
+struct CrossfadeGains
+{
+	float dry;
+	float wet;
+};
+
+inline CrossfadeGains shapedCrossfade(float mix)
+{
+	constexpr float kCurve = 3.0f;
+	static_assert(kCurve == 3.0f, "optimized crossfade assumes a fixed exponent of 3");
+	mix = mix < 0.0f ? 0.0f : (mix > 1.0f ? 1.0f : mix);
+	const float dryBase = 1.0f - mix;
+	const float a = dryBase * dryBase * dryBase;
+	const float b = mix * mix * mix;
+	const float sum = a * a + b * b;
+	const float norm = sum > 0.0f ? 1.0f / sqrtf(sum) : 1.0f;
+	return { a * norm, b * norm };
+}
+
+void processPath(OutputPair* outputs,
 	const float* const* returnLeft, const float* const* returnRight,
 	const bool* returnStereo, int frame, float left, float right, bool stereo,
-	int insert1, int insert2, bool repeatProtection, int outputIndex,
-	float pathGain, float channelGain, float radiantMix, float fx2Mix)
+	int route1, int route2, bool repeatProtection, int outputIndex,
+	float pathGain, float channelGain, const CrossfadeGains& fx1,
+	const CrossfadeGains& fx2)
 {
 	if (pathGain <= 0.0f)
 		return;
@@ -672,45 +716,68 @@ void processPath(const WitchboardAlgorithm* self, OutputPair* outputs,
 	float intermediateLeft = left;
 	float intermediateRight = right;
 	bool intermediateStereo = stereo;
-	if (insert1 != kInsertDry)
+	if (route1 >= 0)
 	{
-		addSignal(outputs[3 + insert1], frame, left, right, stereo, pathGain);
-		const int route = insert1 - 1;
-		intermediateLeft = returnLeft[route] ? returnLeft[route][frame] : 0.0f;
-		intermediateRight = returnRight[route] ? returnRight[route][frame] : intermediateLeft;
-		intermediateStereo = returnStereo[route];
+		addSignal(outputs[4 + route1], frame, left, right, stereo, pathGain);
+		intermediateLeft = returnLeft[route1] ? returnLeft[route1][frame] : 0.0f;
+		intermediateRight = returnRight[route1] ? returnRight[route1][frame] : intermediateLeft;
+		intermediateStereo = returnStereo[route1];
 	}
-
-	if (repeatProtection && insert1 != kInsertDry && insert2 == insert1)
-		insert2 = kInsertDry;
+	if (repeatProtection && route1 >= 0 && route2 == route1)
+		route2 = -1;
 
 	float finalLeft = intermediateLeft;
 	float finalRight = intermediateRight;
 	bool finalStereo = intermediateStereo;
-	if (insert2 != kInsertDry)
+	if (route2 >= 0)
 	{
-		addSignal(outputs[3 + insert2], frame, intermediateLeft, intermediateRight,
+		addSignal(outputs[4 + route2], frame, intermediateLeft, intermediateRight,
 			intermediateStereo, pathGain);
-		const int route = insert2 - 1;
-		finalLeft = returnLeft[route] ? returnLeft[route][frame] : 0.0f;
-		finalRight = returnRight[route] ? returnRight[route][frame] : finalLeft;
-		finalStereo = returnStereo[route];
+		finalLeft = returnLeft[route2] ? returnLeft[route2][frame] : 0.0f;
+		finalRight = returnRight[route2] ? returnRight[route2][frame] : finalLeft;
+		finalStereo = returnStereo[route2];
 	}
 
-	const float dryMix = (1.0f - radiantMix) * (1.0f - fx2Mix);
+	const float dryMix = fx1.dry * fx2.dry;
 	addSignal(outputs[outputIndex], frame, finalLeft, finalRight, finalStereo,
 		pathGain * dryMix);
 	addSignal(outputs[2], frame, finalLeft, finalRight, finalStereo,
-		pathGain * radiantMix);
+		pathGain * fx1.wet);
 	addSignal(outputs[3], frame, finalLeft, finalRight, finalStereo,
-		pathGain * fx2Mix);
+		pathGain * fx2.wet);
+}
+
+int selectedRoute(const WitchboardAlgorithm* self, int channel, int insert, int state)
+{
+	if (state == kInsertDry)
+		return -1;
+	const int base = channelBase(channel);
+	const int slot = clampInt(state, 1, 3) - 1;
+	const int param = base + channelInsertSlotParam(insert, slot);
+	return clampInt(self->v[param], 0, kNumRoutes - 1);
+}
+
+void selectRoutes(const WitchboardAlgorithm* self,
+	int8_t routes[kMaxChannels][kNumInserts][kNumInsertStates])
+{
+	for (int channel = 0; channel < self->numChannels; ++channel)
+	{
+		for (int insert = 0; insert < kNumInserts; ++insert)
+		{
+			for (int state = 0; state < kNumInsertStates; ++state)
+			{
+				routes[channel][insert][state] = static_cast<int8_t>(
+					selectedRoute(self, channel, insert, state));
+			}
+		}
+	}
 }
 
 void calculateRequirements(_NT_algorithmRequirements& requirements, const int32_t* specs)
 {
 	const int channels = clampInt(specs[0], 1, kMaxChannels);
 	requirements.numParameters = kNumGlobalParams + channels * kNumChannelParams;
-	requirements.sram = sizeof(WitchboardAlgorithm);
+	requirements.sram = static_cast<uint32_t>(requiredSram(channels));
 	requirements.dram = 0;
 	requirements.dtc = 0;
 	requirements.itc = 0;
@@ -729,56 +796,34 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 	const int numFrames = numFramesBy4 * 4;
 	const int fadeSamples = self->v[kParamFadeMs]
 		* static_cast<int>(NT_globals.sampleRate) / 1000;
+	int8_t activeRoutes[kMaxChannels][kNumInserts][kNumInsertStates];
 
-	OutputPair outputs[kNumOutputPairs] = {
-		makeOutputPair(busFrames, numFrames, self->v[kParamMainL], self->v[kParamMainR]),
-		makeOutputPair(busFrames, numFrames, self->v[kParamBypassL], self->v[kParamBypassR]),
-		makeOutputPair(busFrames, numFrames, self->v[kParamFx1L],
-			self->v[kParamFx1Width] == kWidthStereo ? self->v[kParamFx1R] : 0),
-		makeOutputPair(busFrames, numFrames, self->v[kParamFx2L],
-			self->v[kParamFx2Width] == kWidthStereo ? self->v[kParamFx2R] : 0),
-		makeOutputPair(busFrames, numFrames, self->v[kParamRouteAOutputL],
-			self->v[kParamRouteASendWidth] == kWidthStereo ? self->v[kParamRouteAOutputR] : 0),
-		makeOutputPair(busFrames, numFrames, self->v[kParamRouteBOutputL],
-			self->v[kParamRouteBSendWidth] == kWidthStereo ? self->v[kParamRouteBOutputR] : 0),
-		makeOutputPair(busFrames, numFrames, self->v[kParamRouteCOutputL],
-			self->v[kParamRouteCSendWidth] == kWidthStereo ? self->v[kParamRouteCOutputR] : 0),
-	};
+	OutputPair outputs[kNumOutputPairs];
+	outputs[0] = makeOutputPair(busFrames, numFrames, self->v[kParamMainL],
+		self->v[kParamMainR]);
+	outputs[1] = makeOutputPair(busFrames, numFrames, self->v[kParamBypassL],
+		self->v[kParamBypassR]);
+	outputs[2] = makeOutputPair(busFrames, numFrames, self->v[kParamFx1L],
+		self->v[kParamFx1Width] == kWidthStereo ? self->v[kParamFx1R] : 0);
+	outputs[3] = makeOutputPair(busFrames, numFrames, self->v[kParamFx2L],
+		self->v[kParamFx2Width] == kWidthStereo ? self->v[kParamFx2R] : 0);
+	for (int route = 0; route < kNumRoutes; ++route)
+	{
+		outputs[4 + route] = makeOutputPair(busFrames, numFrames,
+			self->v[routeParam(route, kRouteOutputL)],
+			self->v[routeParam(route, kRouteSendWidth)] == kWidthStereo
+				? self->v[routeParam(route, kRouteOutputR)] : 0);
+	}
 
-	const int outputModes[kNumOutputPairs] = {
-		self->v[kParamMainMode],
-		self->v[kParamBypassMode],
-		self->v[kParamFx1Mode],
-		self->v[kParamFx2Mode],
-		self->v[kParamRouteAMode],
-		self->v[kParamRouteBMode],
-		self->v[kParamRouteCMode],
-	};
-
-	float* clearPointers[kMaxClearBusses];
-	int clearBusNumbers[kMaxClearBusses];
-	int clearCount = 0;
-	for (int output = 0; output < kNumOutputPairs; ++output)
-		addPairToClearList(outputs[output], outputModes[output] != 0,
-			clearPointers, clearBusNumbers, clearCount);
-
-	const int routeReturnL[kNumRoutes] = {
-		kParamRouteAReturnL, kParamRouteBReturnL, kParamRouteCReturnL,
-	};
-	const int routeReturnR[kNumRoutes] = {
-		kParamRouteAReturnR, kParamRouteBReturnR, kParamRouteCReturnR,
-	};
-	const int routeReturnWidth[kNumRoutes] = {
-		kParamRouteAReturnWidth, kParamRouteBReturnWidth, kParamRouteCReturnWidth,
-	};
 	const float* returnLeft[kNumRoutes];
 	const float* returnRight[kNumRoutes];
 	bool returnStereo[kNumRoutes];
 	for (int route = 0; route < kNumRoutes; ++route)
 	{
-		returnLeft[route] = inputBus(busFrames, self->v[routeReturnL[route]], numFrames);
-		returnRight[route] = self->v[routeReturnWidth[route]] == kWidthStereo
-			? inputBus(busFrames, self->v[routeReturnR[route]], numFrames) : NULL;
+		returnLeft[route] = inputBus(busFrames,
+			self->v[routeParam(route, kRouteReturnL)], numFrames);
+		returnRight[route] = self->v[routeParam(route, kRouteReturnWidth)] == kWidthStereo
+			? inputBus(busFrames, self->v[routeParam(route, kRouteReturnR)], numFrames) : NULL;
 		returnStereo[route] = returnRight[route] != NULL;
 	}
 
@@ -802,6 +847,7 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 	const float* channelLeft[kMaxChannels];
 	const float* channelRight[kMaxChannels];
 	bool channelStereo[kMaxChannels];
+	CrossfadeGains channelFxGains[kMaxChannels][2];
 	for (int channel = 0; channel < self->numChannels; ++channel)
 	{
 		const int base = channelBase(channel);
@@ -809,15 +855,15 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 		channelRight[channel] = inputBus(busFrames, self->v[base + kChannelInputR], numFrames);
 		channelStereo[channel] = channelRight[channel] != NULL;
 
-		const int insert1 = clampInt(self->v[base + kChannelInsert1], 0, 3);
-		const int insert2 = clampInt(self->v[base + kChannelInsert2], 0, 3);
+		const int insert1 = insertParameterToState(self->v[base + kChannelInsert1]);
+		const int insert2 = insertParameterToState(self->v[base + kChannelInsert2]);
 		const int gainDb = self->v[base + kChannelGain];
-		const int radiantPercent = self->v[base + kChannelRadiantMix];
+		const int fx1Percent = self->v[base + kChannelFx1Mix];
 		const int fx2Percent = self->v[base + kChannelFx2Mix];
 
 		ChannelRuntime& rt = self->runtime[channel];
 		if (!rt.initialised)
-			initialiseChannel(rt, insert1, insert2, gainDb, radiantPercent, fx2Percent);
+			initialiseChannel(rt, insert1, insert2, gainDb, fx1Percent, fx2Percent);
 		else
 		{
 			if (rt.insertState[0] != insert1)
@@ -826,18 +872,18 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 				beginInsertFade(rt, 1, insert2, fadeSamples);
 			if (rt.gain.parameterValue != gainDb)
 				beginSmooth(rt.gain, gainDb, dbGain(gainDb), fadeSamples);
-			if (rt.radiantMix.parameterValue != radiantPercent)
-				beginSmooth(rt.radiantMix, radiantPercent, percentGain(radiantPercent), fadeSamples);
+			if (rt.fx1Mix.parameterValue != fx1Percent)
+				beginSmooth(rt.fx1Mix, fx1Percent, percentGain(fx1Percent), fadeSamples);
 			if (rt.fx2Mix.parameterValue != fx2Percent)
 				beginSmooth(rt.fx2Mix, fx2Percent, percentGain(fx2Percent), fadeSamples);
 		}
+		channelFxGains[channel][0] = shapedCrossfade(rt.fx1Mix.value);
+		channelFxGains[channel][1] = shapedCrossfade(rt.fx2Mix.value);
 	}
+	selectRoutes(self, activeRoutes);
 
 	for (int frame = 0; frame < numFrames; ++frame)
 	{
-		for (int clear = 0; clear < clearCount; ++clear)
-			clearPointers[clear][frame] = 0.0f;
-
 		for (int fx = 0; fx < 2; ++fx)
 		{
 			if (!fxLeft[fx])
@@ -851,22 +897,32 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 		{
 			const int base = channelBase(channel);
 			ChannelRuntime& rt = self->runtime[channel];
+			const bool fx1Moving = rt.fx1Mix.samplesRemaining > 0;
+			const bool fx2Moving = rt.fx2Mix.samplesRemaining > 0;
 			advanceChannel(rt);
+			if (fx1Moving)
+				channelFxGains[channel][0] = shapedCrossfade(rt.fx1Mix.value);
+			if (fx2Moving)
+				channelFxGains[channel][1] = shapedCrossfade(rt.fx2Mix.value);
 			if (!self->v[base + kChannelEnable] || !channelLeft[channel])
 				continue;
 
 			const float left = channelLeft[channel][frame];
 			const float right = channelRight[channel] ? channelRight[channel][frame] : left;
-			const bool repeatProtection = self->v[base + kChannelRepeatProtection] != 0;
+			const bool repeatProtection =
+				self->v[base + kChannelRepeatProtection] != 0;
 			const int outputIndex = self->v[base + kChannelOutputPath] == kOutputPathBypass ? 1 : 0;
+			const CrossfadeGains& fx1 = channelFxGains[channel][0];
+			const CrossfadeGains& fx2 = channelFxGains[channel][1];
 
 			if (rt.insertSamplesRemaining[0] == 0 && rt.insertSamplesRemaining[1] == 0)
 			{
-				processPath(self, outputs, returnLeft, returnRight, returnStereo,
+				processPath(outputs, returnLeft, returnRight, returnStereo,
 					frame, left, right, channelStereo[channel],
-					rt.insertState[0], rt.insertState[1], repeatProtection,
-					outputIndex, 1.0f, rt.gain.value,
-					rt.radiantMix.value, rt.fx2Mix.value);
+					activeRoutes[channel][0][rt.insertState[0]],
+					activeRoutes[channel][1][rt.insertState[1]],
+					repeatProtection, outputIndex, 1.0f, rt.gain.value,
+					fx1, fx2);
 			}
 			else
 			{
@@ -877,10 +933,12 @@ void step(_NT_algorithm* algorithm, float* busFrames, int numFramesBy4)
 					for (int insert2 = 0; insert2 < kNumInsertStates; ++insert2)
 					{
 						const float gain = rt.insertGain[0][insert1] * rt.insertGain[1][insert2];
-						processPath(self, outputs, returnLeft, returnRight, returnStereo,
+						processPath(outputs, returnLeft, returnRight, returnStereo,
 							frame, left, right, channelStereo[channel],
-							insert1, insert2, repeatProtection, outputIndex, gain,
-							rt.gain.value, rt.radiantMix.value, rt.fx2Mix.value);
+							activeRoutes[channel][0][insert1],
+							activeRoutes[channel][1][insert2],
+							repeatProtection, outputIndex, gain,
+							rt.gain.value, fx1, fx2);
 					}
 				}
 			}
@@ -903,10 +961,21 @@ void serialise(_NT_algorithm* algorithm, _NT_jsonStream& stream)
 		for (int fx = 0; fx < 2; ++fx)
 			stream.addString(self->fxNames[fx]);
 		stream.closeArray();
+		stream.addMemberName("slots");
+		stream.openArray();
+		for (int insert = 0; insert < kNumInserts; ++insert)
+		{
+			stream.openArray();
+			for (int state = 0; state < kNumInsertStates; ++state)
+				stream.addString(self->slotNames[insert][state]);
+			stream.closeArray();
+		}
+		stream.closeArray();
 	stream.closeObject();
 }
 
-bool parseNames(_NT_jsonParse& parse, char names[][kHardwareNameLength], int capacity)
+bool parseNames(_NT_jsonParse& parse, char names[][kHardwareNameLength],
+	int capacity)
 {
 	int count = 0;
 	if (!parse.numberOfArrayElements(count))
@@ -918,6 +987,29 @@ bool parseNames(_NT_jsonParse& parse, char names[][kHardwareNameLength], int cap
 			return false;
 		if (i < capacity)
 			copyText(names[i], kHardwareNameLength, name);
+	}
+	return true;
+}
+
+bool parseSlotNames(_NT_jsonParse& parse,
+	char names[][kNumInsertStates][kSlotNameLength], int capacity)
+{
+	int count = 0;
+	if (!parse.numberOfArrayElements(count))
+		return false;
+	for (int insert = 0; insert < count; ++insert)
+	{
+		int stateCount = 0;
+		if (!parse.numberOfArrayElements(stateCount))
+			return false;
+		for (int state = 0; state < stateCount; ++state)
+		{
+			const char* name = NULL;
+			if (!parse.string(name))
+				return false;
+			if (insert < capacity && state < kNumInsertStates)
+				copyText(names[insert][state], kSlotNameLength, name);
+		}
 	}
 	return true;
 }
@@ -952,12 +1044,73 @@ bool deserialise(_NT_algorithm* algorithm, _NT_jsonParse& parse)
 				if (!parseNames(parse, self->fxNames, 2))
 					return false;
 			}
+			else if (parse.matchName("slots"))
+			{
+				if (!parseSlotNames(parse, self->slotNames, kNumInserts))
+					return false;
+			}
 			else if (!parse.skipMember())
 				return false;
 		}
 	}
-	self->refreshHardwareNames();
 	return true;
+}
+
+bool channelParameterOffset(int parameter, const WitchboardAlgorithm* self,
+	int& offset)
+{
+	if (parameter < kNumGlobalParams
+		|| parameter >= kNumGlobalParams + self->numChannels * kNumChannelParams)
+		return false;
+	offset = (parameter - kNumGlobalParams) % kNumChannelParams;
+	return true;
+}
+
+int copyParameterString(char* buffer, const char* text)
+{
+	copyText(buffer, kNT_parameterStringSize, text);
+	return strlen(buffer);
+}
+
+int parameterString(_NT_algorithm* algorithm, int parameter, int value, char* buffer)
+{
+	WitchboardAlgorithm* self = static_cast<WitchboardAlgorithm*>(algorithm);
+	int offset = 0;
+	if (!channelParameterOffset(parameter, self, offset))
+		return 0;
+
+	if (offset == kChannelInsert1 || offset == kChannelInsert2)
+	{
+		const int insert = offset == kChannelInsert1 ? 0 : 1;
+		const int state = insertParameterToState(value);
+		return copyParameterString(buffer, self->slotNames[insert][state]);
+	}
+
+	if ((offset >= kChannelInsert1Slot1 && offset <= kChannelInsert1Slot3)
+		|| (offset >= kChannelInsert2Slot1 && offset <= kChannelInsert2Slot3))
+	{
+		const int route = clampInt(value, 0, kNumRoutes - 1);
+		return copyParameterString(buffer, self->routeNames[route]);
+	}
+
+	return 0;
+}
+
+int parameterUiPrefix(_NT_algorithm* algorithm, int parameter, char* buffer)
+{
+	WitchboardAlgorithm* self = static_cast<WitchboardAlgorithm*>(algorithm);
+	if (parameter < kNumGlobalParams
+		|| parameter >= kNumGlobalParams + self->numChannels * kNumChannelParams)
+		return 0;
+
+	const int channel = (parameter - kNumGlobalParams) / kNumChannelParams + 1;
+	int length = 0;
+	if (channel >= 10)
+		buffer[length++] = '1';
+	buffer[length++] = static_cast<char>('0' + channel % 10);
+	buffer[length++] = ':';
+	buffer[length] = 0;
+	return length;
 }
 
 static const _NT_factory witchboardFactory = {
@@ -970,7 +1123,7 @@ static const _NT_factory witchboardFactory = {
 	.initialise = NULL,
 	.calculateRequirements = calculateRequirements,
 	.construct = constructWitchboard,
-	.parameterChanged = NULL,
+	.parameterChanged = parameterChanged,
 	.step = step,
 	.draw = NULL,
 	.midiRealtime = NULL,
@@ -982,8 +1135,8 @@ static const _NT_factory witchboardFactory = {
 	.serialise = serialise,
 	.deserialise = deserialise,
 	.midiSysEx = NULL,
-	.parameterUiPrefix = NULL,
-	.parameterString = NULL,
+	.parameterUiPrefix = parameterUiPrefix,
+	.parameterString = parameterString,
 };
 
 } // namespace
