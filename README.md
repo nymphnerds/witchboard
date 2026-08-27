@@ -13,6 +13,19 @@ cables.
 |---|---|---|
 | Witchboard | `WtC1` | `Witchboard.o` |
 
+## What's Changed From v1.0.0
+
+Compared with the old main-branch release, `v1.1.0` expands Witchboard from the
+original fixed insert layout into a 12-channel routing matrix with five
+assignable insert routes. Each channel now has per-channel Slot 1/2/3 route
+assignments for both insert stages, so the same four-state control can mean
+different hardware paths on different channels.
+
+The 4-state insert selectors now work cleanly from buttons, faders, knobs, or
+CV-mapped controls. Outputs are fixed to Add so the plugin stays within the NT
+parameter limit, and the public release now ships as `Witchboard.o` plus
+`Witchboard.zip`.
+
 ## Signal Flow
 
 Each channel runs:
