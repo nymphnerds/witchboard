@@ -690,12 +690,9 @@ struct CrossfadeGains
 inline CrossfadeGains shapedCrossfade(float mix)
 {
 	mix = mix < 0.0f ? 0.0f : (mix > 1.0f ? 1.0f : mix);
-	const float dryBase = 1.0f - mix;
-	const float a = dryBase * dryBase * dryBase;
-	const float b = mix * mix * mix;
-	const float sum = a * a + b * b;
-	const float norm = sum > 0.0f ? 1.0f / sqrtf(sum) : 1.0f;
-	return { a * norm, b * norm };
+	if (mix <= 0.5f)
+		return { 1.0f, mix * 2.0f };
+	return { (1.0f - mix) * 2.0f, 1.0f };
 }
 
 void processPath(OutputPair* outputs,

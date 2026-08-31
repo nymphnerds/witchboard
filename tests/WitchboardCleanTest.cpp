@@ -123,30 +123,32 @@ int main()
 	assert(witchboardFactory.serialise != NULL);
 	assert(witchboardFactory.deserialise != NULL);
 
-	const float minus3dB = 0.70710678f;
 	CrossfadeGains gains = shapedCrossfade(0.0f);
 	assert(gains.dry == 1.0f && gains.wet == 0.0f);
+	gains = shapedCrossfade(0.25f);
+	assertClose(gains.dry, 1.0f);
+	assertClose(gains.wet, 0.5f);
 	gains = shapedCrossfade(0.5f);
-	assertClose(gains.dry, minus3dB);
-	assertClose(gains.wet, minus3dB);
+	assertClose(gains.dry, 1.0f);
+	assertClose(gains.wet, 1.0f);
+	gains = shapedCrossfade(0.75f);
+	assertClose(gains.dry, 0.5f);
+	assertClose(gains.wet, 1.0f);
 	gains = shapedCrossfade(1.0f);
 	assert(gains.dry == 0.0f && gains.wet == 1.0f);
-	gains = shapedCrossfade(0.25f);
-	assert(gains.dry > 0.99f);
 	for (int i = 0; i <= 1000; ++i)
 	{
 		gains = shapedCrossfade(i / 1000.0f);
 		assert(gains.dry == gains.dry && gains.wet == gains.wet);
 		assert(gains.dry >= 0.0f && gains.dry <= 1.0f);
 		assert(gains.wet >= 0.0f && gains.wet <= 1.0f);
-		assertClose(gains.dry * gains.dry + gains.wet * gains.wet, 1.0f);
 	}
 	assertCrossfadeRouting(0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
 	assertCrossfadeRouting(1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
 	assertCrossfadeRouting(0.0f, 1.0f, 0.0f, 0.0f, 1.0f);
-	assertCrossfadeRouting(0.5f, 0.0f, minus3dB, minus3dB, 0.0f);
-	assertCrossfadeRouting(0.0f, 0.5f, minus3dB, 0.0f, minus3dB);
-	assertCrossfadeRouting(0.5f, 0.5f, 0.5f, minus3dB, minus3dB);
+	assertCrossfadeRouting(0.5f, 0.0f, 1.0f, 1.0f, 0.0f);
+	assertCrossfadeRouting(0.0f, 0.5f, 1.0f, 0.0f, 1.0f);
+	assertCrossfadeRouting(0.5f, 0.5f, 1.0f, 1.0f, 1.0f);
 
 	const int32_t oneChannelSpecs[] = { 1 };
 	const int32_t specs[] = { 4 };

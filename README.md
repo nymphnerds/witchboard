@@ -1,17 +1,75 @@
 # Witchboard
 
 Witchboard is a routing mixer and serial patchbay plugin for the Expert Sleepers
-disting NT.
+disting NT. It was built for patches where a source should be playable like a
+normal mixer channel, but also be able to jump cleanly through hardware inserts,
+external FX, computer or iPad processing, and compressor-bypass paths from a MIDI
+controller.
 
-Use it as a compact routing matrix for hardware, external devices, and internal
-paths. Patch gear, an iPad, a computer, or NT buses into Witchboard once, then
-try different source-to-route combinations from NT parameters, MIDI mappings,
-faders, buttons, knobs, or CV-mapped controls without constantly repatching
-cables.
+It is not a conventional mixer with a bigger channel count. It is the missing
+shape between a mixer, a patchbay, and a performance controller.
+
+```text
+source
+  -> channel gain
+  -> Insert 1: Dry / Slot 1 / Slot 2 / Slot 3
+  -> Insert 2: Dry / Slot 1 / Slot 2 / Slot 3
+  -> FX Send 1 overlap dry/wet control
+  -> FX Send 2 overlap dry/wet control
+  -> Main or Bypass output path
+```
+
+One Witchboard instance can provide up to 12 source channels. Each channel has
+two independent insert selectors, two FX send controls, gain, repeat protection,
+and a final Main/Bypass output choice.
 
 | Plug-in | GUID | Release file |
 |---|---|---|
 | Witchboard | `WtC1` | `Witchboard.o` |
+
+## Latest Change
+
+The FX send mix curve has been changed from the old normalized cubic crossfade
+to an overlap-style dry/wet control. From `0..50%`, dry stays full while wet
+fades in. From `50..100%`, wet stays full while dry fades out. This avoids the
+centre dip and keeps the source punch intact while adding FX.
+
+## Why It Exists
+
+The disting NT already has excellent mixer algorithms, but this patch wanted a
+different kind of control:
+
+- one button should choose exactly one insert slot from four states
+- a second button should choose a second insert after the first
+- a fader should control source gain
+- another fader should blend into a stereo FX processor
+- selected channels should bypass the compressor while the rest go through it
+- all of this should stay readable on the NT screen and mappable with the native
+  MIDI Mapping system
+
+Doing that with stock mixers quickly becomes a mixer stack rather than a patch.
+The harder part is not only the algorithm count; it is the control surface. Four
+channels with two 4-state insert buttons already means 32 discrete route choices
+before gain, FX, and output routing. At the full 12-channel size, the insert
+selectors alone represent 24 four-state controls, or 96 possible route targets,
+if patched as ordinary mixer levels or mutes.
+
+In the patch Witchboard was built for, doing this as one purpose-built plugin was
+also dramatically lighter on the disting NT CPU than building the same routing
+matrix from stock mixers. The Witchboard version was roughly an order of
+magnitude cheaper than the mixer-stack version it replaced.
+
+Witchboard compresses that into normal NT parameters:
+
+- `Insert 1`
+- `Insert 2`
+- `Gain`
+- `FX Send 1 mix`
+- `FX Send 2 mix`
+- `Output path`
+
+The result is much closer to playing a hardware performance matrix than managing
+a pile of mixer channels.
 
 ## What's Changed From v1.0.0
 
@@ -28,6 +86,10 @@ parameter limit, and the public release now ships as `Witchboard.o` plus
 storage so differently sized Witchboard instances do not share mutable page
 layout data.
 
+The next update changes the FX send mix from the old normalized crossfade to an
+overlap-style dry/wet control. The dry signal now stays full while wet comes in,
+then the wet signal stays full while dry fades out.
+
 ## Signal Flow
 
 Each channel runs:
@@ -37,8 +99,8 @@ Input/Left + optional Right Input
 -> Gain
 -> Insert 1
 -> Insert 2
--> FX Send 1 dry/wet crossfade
--> FX Send 2 dry/wet crossfade
+-> FX Send 1 overlap dry/wet control
+-> FX Send 2 overlap dry/wet control
 -> Main or Bypass output path
 ```
 
@@ -187,14 +249,13 @@ FX Send 1 mix
 FX Send 2 mix
 ```
 
-Each mix is a shaped dry/wet crossfade from the channel path into the shared FX
-send, smoothed by `Switch fade`.
+Each mix is an overlap-style dry/wet control from the channel path into the
+shared FX send, smoothed by `Switch fade`.
 
-The crossfade is deliberately not linear. It uses a DJ-style shaped curve: most
-of the fader travel stays close to the dry or wet side, with a quicker blend
-through the middle. That makes it useful for performance moves because a send
-can sit mostly dry, mostly wet, or snap through the transition without feeling
-like a plain volume fade.
+From `0..50%`, the dry path stays fully on while the wet send fades in. At
+`50%`, dry and wet are both fully on. From `50..100%`, the wet send stays fully
+on while the dry path fades out. This avoids the centre dip of an equal-power
+crossfade and works well for performance-style send moves.
 
 At `0%`, the channel stays dry and sends nothing to that FX output. At `100%`,
 the channel is fully sent to that FX output and removed from the dry Main/Bypass
