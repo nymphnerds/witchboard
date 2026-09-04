@@ -59,8 +59,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            release/Witchboard.o \
-            release/Witchboard.zip \
+            release/Witchboard-v2.o \
+            release/Witchboard-v2.zip \
             --verify-tag \
-            --title "Witchboard ${GITHUB_REF_NAME}" \
+            --title "Witchboard v2 ${GITHUB_REF_NAME}" \
             --generate-notes

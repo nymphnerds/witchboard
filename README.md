@@ -127,7 +127,7 @@ and a final Main/Bypass output choice.
 
 | Plug-in | GUID | Release file |
 |---|---|---|
-| Witchboard | `WtC1` | `Witchboard.o` |
+| Witchboard v2 | `WtC2` | `Witchboard-v2.o` |
 
 ## Latest Change
 
@@ -410,7 +410,7 @@ parameter limit.
 Copy the object to the disting NT MicroSD card:
 
 ```text
-Witchboard.o -> /programs/plug-ins/Witchboard.o
+Witchboard-v2.o -> /programs/plug-ins/Witchboard-v2.o
 ```
 
 Then rescan plugins or restart the module.

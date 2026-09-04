@@ -1236,9 +1236,9 @@ int parameterUiPrefix(_NT_algorithm* algorithm, int parameter, char* buffer)
 }
 
 static const _NT_factory witchboardFactory = {
-	.guid = NT_MULTICHAR('W', 't', 'C', '1'),
-	.name = "Witchboard",
-	.description = "Native-mappable serial inserts and FX crossfades",
+	.guid = NT_MULTICHAR('W', 't', 'C', '2'),
+	.name = "Witchboard v2",
+	.description = "Serial inserts with main and master bus routing",
 	.numSpecifications = ARRAY_SIZE(specifications),
 	.specifications = specifications,
 	.calculateStaticRequirements = NULL,

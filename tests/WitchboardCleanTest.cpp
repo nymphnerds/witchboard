@@ -118,7 +118,8 @@ void assertCrossfadeRouting(float fx1Mix, float fx2Mix,
 
 int main()
 {
-	assert(witchboardFactory.guid == NT_MULTICHAR('W', 't', 'C', '1'));
+	assert(witchboardFactory.guid == NT_MULTICHAR('W', 't', 'C', '2'));
+	assert(strcmp(witchboardFactory.name, "Witchboard v2") == 0);
 	assert(witchboardFactory.parameterChanged == parameterChanged);
 	assert(witchboardFactory.midiMessage == NULL);
 	assert(witchboardFactory.midiRealtime == NULL);

@@ -1,16 +1,16 @@
 {
-  "name": "Witchboard",
+  "name": "Witchboard v2",
   "type": "cpp",
   "pluginType": "CPP",
-  "guid": "WtC1",
+  "guid": "WtC2",
   "isCollection": false,
   "collectionGuids": [],
-  "version": "1.1.2",
+  "version": "0.1.0",
   "category": "Utilities",
   "minimumFirmware": "1.17.0",
-  "description": "A routing matrix for switching sources through hardware, external inserts, FX sends, and bypass paths without repatching.",
+  "description": "A test build of Witchboard with main and master bus inserts for cleaner end-of-chain routing.",
   "releaseAssets": [
-    "Witchboard.o",
-    "Witchboard.zip"
+    "Witchboard-v2.o",
+    "Witchboard-v2.zip"
   ]
 }

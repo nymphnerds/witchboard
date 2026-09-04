@@ -14,7 +14,7 @@ ARM_SIZE ?= arm-none-eabi-size
 BUILD_DIR := build
 RELEASE_DIR := release
 SOURCE := plugins/Witchboard/Witchboard.cpp
-OUTPUT := plugins/Witchboard.o
+OUTPUT := plugins/Witchboard-v2.o
 HOST_TEST := $(BUILD_DIR)/WitchboardCleanTest
 
 HOST_FLAGS := -std=c++11 -O2 -Wall -Wextra -fno-exceptions -fno-rtti
@@ -44,8 +44,8 @@ hardware: $(OUTPUT)
 
 $(OUTPUT): $(SOURCE) | check-api
 	mkdir -p "$(@D)"
-	$(ARM_CXX) $(ARM_FLAGS) -I"$(INCLUDE_PATH)" -c "$<" -o /tmp/Witchboard.o
-	cp -a /tmp/Witchboard.o "$@"
+	$(ARM_CXX) $(ARM_FLAGS) -I"$(INCLUDE_PATH)" -c "$<" -o /tmp/Witchboard-v2.o
+	cp -a /tmp/Witchboard-v2.o "$@"
 
 inspect: hardware
 	ARM_NM="$(ARM_NM)" ARM_READELF="$(ARM_READELF)" ARM_SIZE="$(ARM_SIZE)" \
