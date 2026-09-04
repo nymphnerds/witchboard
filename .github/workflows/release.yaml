@@ -63,4 +63,5 @@ jobs:
             release/Witchboard-v2.zip \
             --verify-tag \
             --title "Witchboard v2 ${GITHUB_REF_NAME}" \
+            --latest \
             --generate-notes
