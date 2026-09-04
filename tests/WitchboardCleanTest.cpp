@@ -81,7 +81,12 @@ void fillBus(std::vector<float>& buses, int bus, float value)
 void assertBus(const std::vector<float>& buses, int bus, float expected)
 {
 	for (int frame = 0; frame < 4; ++frame)
+	{
+		if (fabsf(buses[(bus - 1) * 4 + frame] - expected) >= 0.0001f)
+			fprintf(stderr, "bus %d frame %d actual %.4f expected %.4f\n",
+				bus, frame, buses[(bus - 1) * 4 + frame], expected);
 		assert(fabsf(buses[(bus - 1) * 4 + frame] - expected) < 0.0001f);
+	}
 }
 
 void assertClose(float actual, float expected)
@@ -96,9 +101,9 @@ void assertCrossfadeRouting(float fx1Mix, float fx2Mix,
 	float wet1[1] = {};
 	float wet2[1] = {};
 	OutputPair outputs[kNumOutputPairs] = {};
-	outputs[0] = { dry, NULL };
-	outputs[2] = { wet1, NULL };
-	outputs[3] = { wet2, NULL };
+	outputs[0] = { dry, NULL, false };
+	outputs[2] = { wet1, NULL, false };
+	outputs[3] = { wet2, NULL, false };
 	const float* returnLeft[kNumRoutes] = {};
 	const float* returnRight[kNumRoutes] = {};
 	bool returnStereo[kNumRoutes] = {};
@@ -162,8 +167,8 @@ int main()
 	calculateRequirements(requirements, specs);
 	calculateRequirements(eightChannelRequirements, eightChannelSpecs);
 	calculateRequirements(maxChannelRequirements, maxChannelSpecs);
-	assert(requirements.numParameters == 113);
-	assert(maxChannelRequirements.numParameters == 241);
+	assert(requirements.numParameters == 120);
+	assert(maxChannelRequirements.numParameters == 240);
 	assert(oneChannelRequirements.sram < requirements.sram);
 	assert(requirements.sram < eightChannelRequirements.sram);
 	assert(eightChannelRequirements.sram < maxChannelRequirements.sram);
@@ -179,8 +184,8 @@ int main()
 	_NT_algorithmMemoryPtrs maxMemory = allocateMemory(maxChannelRequirements);
 	_NT_algorithm* maxAlgorithm = constructWitchboard(
 		maxMemory, maxChannelRequirements, maxChannelSpecs);
-	assert(algorithm->parameterPages->numPages == 7);
-	assert(maxAlgorithm->parameterPages->numPages == 15);
+	assert(algorithm->parameterPages->numPages == 9);
+	assert(maxAlgorithm->parameterPages->numPages == 17);
 
 	std::vector<int16_t> values(requirements.numParameters);
 	for (uint32_t i = 0; i < requirements.numParameters; ++i)
@@ -245,6 +250,8 @@ int main()
 	assert(strcmp(algorithm->parameters[routeParam(0, kRouteOutputL)].name,
 		"Route A output L") == 0);
 	assert(strcmp(algorithm->parameters[kParamFx1L].name, "FX Send 1 L") == 0);
+	assert(strcmp(algorithm->parameters[kParamMasterMode].name, "Master output") == 0);
+	assert(strcmp(algorithm->parameters[kParamMasterMode].enumStrings[0], "Split") == 0);
 	assert(parameterString(algorithm, channelBase(0) + kChannelInsert1Slot1, 0, label)
 		== 11);
 	assert(strcmp(label, "Mono Filter") == 0);
@@ -262,14 +269,14 @@ int main()
 
 	for (int channel = 0; channel < 4; ++channel)
 	{
-		const _NT_parameterPage& page = algorithm->parameterPages->pages[3 + channel];
+		const _NT_parameterPage& page = algorithm->parameterPages->pages[5 + channel];
 		assert(page.numParams == kNumChannelParams);
 		for (int p = 0; p < kNumChannelParams; ++p)
 			assert(page.params[p] == channelBase(channel) + p);
 	}
 	for (int channel = 0; channel < 12; ++channel)
 	{
-		const _NT_parameterPage& page = maxAlgorithm->parameterPages->pages[3 + channel];
+		const _NT_parameterPage& page = maxAlgorithm->parameterPages->pages[5 + channel];
 		assert(page.numParams == kNumChannelParams);
 		for (int p = 0; p < kNumChannelParams; ++p)
 			assert(page.params[p] == channelBase(channel) + p);
@@ -341,10 +348,18 @@ int main()
 	routingAlgorithm->vIncludingCommon = routingValues.data();
 
 	const int mainBus = kNT_numInputBusses + 1;
+	const int mainBusR = mainBus + 1;
+	const int bypassBus = mainBusR + 1;
 	const int routeSendBus = kNT_numInputBusses + kNT_numOutputBusses + 1;
 	const int routeReturnBus = routeSendBus + 1;
+	const int mainInsertSendBus = routeReturnBus + 1;
+	const int mainInsertReturnBus = mainInsertSendBus + 1;
+	const int masterSendBus = mainInsertReturnBus + 1;
+	const int masterReturnBus = masterSendBus + 1;
+	const int masterReturnBusR = masterReturnBus + 1;
 	routingValues[kParamFadeMs] = 0;
 	routingValues[kParamMainL] = mainBus;
+	routingValues[kParamMainR] = mainBusR;
 	routingValues[routeParam(0, kRouteOutputL)] = routeSendBus;
 	routingValues[routeParam(0, kRouteReturnL)] = routeReturnBus;
 	routingValues[channelBase(0) + kChannelInputL] = 1;
@@ -358,6 +373,56 @@ int main()
 	step(routingAlgorithm, buses.data(), 1);
 	assertBus(buses, routeSendBus, 1.0f);
 	assertBus(buses, mainBus, 12.0f);
+
+	routingValues[kParamBypassL] = bypassBus;
+	routingValues[channelBase(1) + kChannelOutputPath] = kOutputPathBypass;
+	routingValues[kParamMasterMode] = kMasterSum;
+	buses.assign(kNT_lastBus * 4, 0.0f);
+	fillBus(buses, 1, 1.0f);
+	fillBus(buses, 2, 2.0f);
+	fillBus(buses, routeReturnBus, 10.0f);
+	step(routingAlgorithm, buses.data(), 1);
+	assertBus(buses, routeSendBus, 1.0f);
+	assertBus(buses, bypassBus, 2.0f);
+	assertBus(buses, mainBus, 12.0f);
+
+	routingValues[kParamMainInsertMode] = 1;
+	routingValues[kParamMainInsertSendL] = mainInsertSendBus;
+	routingValues[kParamMainInsertReturnL] = mainInsertReturnBus;
+	buses.assign(kNT_lastBus * 4, 0.0f);
+	fillBus(buses, 1, 1.0f);
+	fillBus(buses, 2, 2.0f);
+	fillBus(buses, routeReturnBus, 10.0f);
+	fillBus(buses, mainInsertReturnBus, 30.0f);
+	step(routingAlgorithm, buses.data(), 1);
+	assertBus(buses, mainInsertSendBus, 10.0f);
+	assertBus(buses, bypassBus, 2.0f);
+	assertBus(buses, mainBus, 32.0f);
+
+	routingValues[kParamMainInsertMode] = 0;
+	routingValues[kParamMainInsertSendL] = 0;
+	routingValues[kParamMainInsertReturnL] = 0;
+	routingValues[kParamMasterMode] = kMasterInsert;
+	routingValues[kParamMasterSendL] = masterSendBus;
+	routingValues[kParamMasterReturnL] = masterReturnBus;
+	routingValues[kParamMasterReturnR] = masterReturnBusR;
+	buses.assign(kNT_lastBus * 4, 0.0f);
+	fillBus(buses, 1, 1.0f);
+	fillBus(buses, 2, 2.0f);
+	fillBus(buses, routeReturnBus, 10.0f);
+	fillBus(buses, masterReturnBus, 100.0f);
+	fillBus(buses, masterReturnBusR, 200.0f);
+	step(routingAlgorithm, buses.data(), 1);
+	assertBus(buses, masterSendBus, 12.0f);
+	assertBus(buses, mainBus, 100.0f);
+	assertBus(buses, mainBusR, 200.0f);
+
+	routingValues[kParamMasterMode] = kMasterSplit;
+	routingValues[kParamMasterSendL] = 0;
+	routingValues[kParamMasterReturnL] = 0;
+	routingValues[kParamMasterReturnR] = 0;
+	routingValues[kParamBypassL] = 0;
+	routingValues[channelBase(1) + kChannelOutputPath] = kOutputPathMain;
 
 	routingValues[channelBase(1) + kChannelInsert1] = 1;
 	buses.assign(kNT_lastBus * 4, 0.0f);
@@ -381,7 +446,7 @@ int main()
 	assertBus(buses, routeSendBus, 3.0f);
 	assertBus(buses, mainBus, 20.0f);
 
-	routingValues[channelBase(1) + kChannelRepeatProtection] = 0;
+	routingValues[kParamRepeatProtection] = 0;
 	buses.assign(kNT_lastBus * 4, 0.0f);
 	fillBus(buses, 1, 1.0f);
 	fillBus(buses, 2, 2.0f);
@@ -389,6 +454,7 @@ int main()
 	step(routingAlgorithm, buses.data(), 1);
 	assertBus(buses, routeSendBus, 13.0f);
 	assertBus(buses, mainBus, 20.0f);
+	routingValues[kParamRepeatProtection] = 1;
 
 	routingValues[kParamFadeMs] = 2;
 	routingValues[channelBase(0) + kChannelGain] = 0;
@@ -407,7 +473,7 @@ int main()
 		assertClose(routingWitchboard->runtime[0].gain.value, 1.0f);
 	}
 
-	printf("PASS: Witchboard has direct routes, stable rapid switching, and optional repeat protection (SRAM %u/%u/%u/%u, DRAM %u/%u/%u/%u host bytes for 1/4/8/12 channels).\n",
+	printf("PASS: Witchboard has direct routes, stable rapid switching, bus inserts, and repeat protection (SRAM %u/%u/%u/%u, DRAM %u/%u/%u/%u host bytes for 1/4/8/12 channels).\n",
 		oneChannelRequirements.sram, requirements.sram,
 		eightChannelRequirements.sram, maxChannelRequirements.sram,
 		oneChannelRequirements.dram, requirements.dram,

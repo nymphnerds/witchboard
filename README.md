@@ -9,6 +9,108 @@ controller.
 It is not a conventional mixer with a bigger channel count. It is the missing
 shape between a mixer, a patchbay, and a performance controller.
 
+## Why This Branch Exists
+
+This branch adds end-of-chain routing to Witchboard.
+
+The goal is simple: one Witchboard instance should be able to act as the main
+routing matrix, the compressor-bypass mixer, and the final stereo insert point.
+That means a patch can stay readable instead of needing an extra "end
+Witchboard" just to join things back together at the end.
+
+In the old patch shape, the main Witchboard sent some channels through a
+sidechain compressor and sent other channels around it on a bypass lane. A
+second Witchboard instance then had to sit at the end of the patch to sum those
+two lanes back to outputs 1/2.
+
+This branch lets the main Witchboard do that final job itself:
+
+- `Main` is the normal mix path.
+- `Main insert` is for processing the Main path, for example sidechain ducking.
+- `Bypass` skips the Main insert, so kicks or other sounds can avoid the duck.
+- `Master output` decides what happens after Main and Bypass meet again.
+- `Master output: Insert` sends the whole final stereo mix out and brings it
+  back, useful for an iPad, computer, DJ-style processor, or mastering chain.
+
+The intended before/after is:
+
+![Before: the patch needed an extra end Witchboard to rejoin the main and bypass paths.](assets/patch1.png)
+
+![After: the main Witchboard owns the main insert, bypass rejoin, and master insert routing.](assets/patch2.png)
+
+```text
+Before:
+
+Main Witchboard -> sidechain duck -> End Witchboard -> outputs 1/2
+       bypass ------------------------^
+
+After:
+
+Main Witchboard -> Main insert -> Master insert -> outputs 1/2
+       bypass --------^
+```
+
+## Bus Insert Flow
+
+Think of Witchboard as making two buckets:
+
+- `Main`: the normal mix bucket.
+- `Bypass`: the bucket that skips Main insert processing.
+
+The full flow is:
+
+```text
+Inputs
+  |
+  v
+Channels
+  |
+  |-- Insert 1: Dry / Slot 1 / Slot 2 / Slot 3
+  |
+  |-- Insert 2: Dry / Slot 1 / Slot 2 / Slot 3
+  |
+  |-- FX Send 1 / FX Send 2
+  |
+  v
+Output Path
+  |
+  +--> Main
+  |      |
+  |      v
+  |   Main insert
+  |   Off: Main carries on unchanged
+  |   On:  Main -> Main insert send -> processor -> Main insert return
+  |
+  +--> Bypass
+         |
+         | skips Main insert
+         v
+
+Master output
+  |
+  |-- Split:
+  |     Main goes to Main L/R
+  |     Bypass goes to Bypass L/R
+  |
+  |-- Sum:
+  |     Main + Bypass goes to Main L/R
+  |
+  |-- Insert:
+  |     Main + Bypass -> Master send -> processor -> Master return -> Main L/R
+  |
+  v
+Outputs
+```
+
+In plain words:
+
+- `Main insert` is for processing only the Main bucket.
+- `Bypass` skips the Main insert, then can rejoin later.
+- `Master output: Split` keeps Main and Bypass separate, like older patches.
+- `Master output: Sum` joins Main and Bypass inside Witchboard.
+- `Master output: Insert` joins Main and Bypass, sends the whole mix out, then
+  uses the return as the final Main output.
+
 ```text
 source
   -> channel gain
